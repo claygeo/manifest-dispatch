@@ -9,8 +9,9 @@ Live at **manifest.claygeo.dev**. Repo: `claygeo/manifest-dispatch` (public port
 
 ## Architecture (decided via outside-voice consult 2026-08-02 — do not relitigate)
 
-- React 18 + Vite + TypeScript PWA. Single app, three routes:
-  - `/` — dispatch console (desktop-first, works on tablet)
+- React 18 + Vite + TypeScript PWA. Single app, routes:
+  - `/` — **scroll-story demo page** (the front door — see "Story page" below)
+  - `/dispatch` — dispatch console (desktop-first, works on tablet)
   - `/driver` — driver app (phone-first)
   - `/t/:orderCode` — customer tracking page (no auth)
 - MapLibre GL JS + **custom style JSON** over OpenFreeMap vector tiles
@@ -139,6 +140,32 @@ first name, order summary, map with driver dot once out for delivery.
   cannot close a stop without it (the app enforces the law's shape).
 - Footer of README + site: "Demo uses fictional data. Not affiliated with any
   licensed operator."
+
+## Story page `/` (operator directive 2026-08-02 — the URL is the meeting)
+
+The audience is a director who will never take the call but might tap a link.
+The root page is a scroll-driven walkthrough of the ENTIRE delivery lifecycle,
+consumable with zero interaction beyond scrolling, on phone or desktop:
+
+1. **Hero**: product name + one-sentence claim over the LIVE map with the demo
+   fleet already moving (motion visible <3s, sim shared with the whole app).
+2. **Scroll sections follow one order start to finish** — packed (POS handoff)
+   → dispatched (console) → en route (driver ticket + customer tracking, side
+   by side on desktop, stacked on phone) → arrival + mandatory ID check →
+   payment closeout (cash/debit/digital states) → the printable manifest →
+   **measured proof** (BENCHMARKS.md headline numbers: zero-loss fan-out,
+   latency percentiles, test counts) → explore-the-real-thing links to every
+   live surface → loop control back to top.
+3. **Embedded surfaces are the REAL components** rendering the live sim from
+   the same store — framed in a phone bezel / minimal browser chrome, scaled.
+   Never screenshots, never mockups. If an embed can't be live it doesn't ship.
+4. Register: DESIGN.md v2. The story page may use Source Serif 4 more
+   generously than the app (it is the one marketing surface), but the same
+   single fern accent and honesty rail (Demo fleet labeling) apply.
+5. Footer: "Built by Clayton George" → claygeo.dev, plus the fictional-data
+   disclaimer. No gate, no login, no contact wall, nothing collected.
+6. Scroll behavior must be cheap: sections lazy-mount their embeds; the page
+   never drops the hero map's frame budget; works with reduced-motion set.
 
 ## Non-goals (cut by decision — do not build)
 
