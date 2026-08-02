@@ -461,6 +461,10 @@ export function MapCanvas({
     mapRef.current = map
     map.touchZoomRotate?.disableRotation()
 
+    // E2E/bench handle + surfaced GL errors (maplibre swallows them otherwise).
+    ;(window as unknown as Record<string, unknown>).__MANIFEST_MAP__ = map
+    map.on('error', (e) => console.error('[map]', e.error?.message ?? e))
+
     const onStyleLoad = () => {
       installOverlays(map, useStore.getState().theme)
       readyRef.current = true
