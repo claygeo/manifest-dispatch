@@ -122,5 +122,17 @@ export interface LiveFix {
 /** Window compliance for a stop, derived — never stored. Amber = dispatcher must act. */
 export type WindowState = 'ok' | 'due' | 'late' | 'closed'
 
-/** Reasons a stop can go undeliverable. Drives the exception event meta. */
-export type ExceptionReason = 'no_answer' | 'cannot_verify' | 'refused' | 'address_issue'
+/**
+ * Reasons a stop can go undeliverable. Drives the exception event meta.
+ *
+ * `cancelled` is the one that does not come from the doorstep: the order was
+ * killed after the van left (customer call, POS-side cancellation). SPEC.md's
+ * edge-case list requires it as a handled state, not a TODO — the stop leaves
+ * the delivery queue, the run skips it, and the manifest says so.
+ */
+export type ExceptionReason =
+  | 'no_answer'
+  | 'cannot_verify'
+  | 'refused'
+  | 'address_issue'
+  | 'cancelled'

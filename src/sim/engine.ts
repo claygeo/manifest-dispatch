@@ -136,6 +136,39 @@ export function createSimEngine(): SimEngine {
     if (Object.keys(etas).length > 0) s.setStopEtas(etas)
   }
 
+  /**
+   * Roll the queue pointer to the next leg — the tail every dwell ends with,
+   * and the whole of what a skipped stop gets.
+   */
+  function nextLeg(sim: RunSim): void {
+    const s = store()
+    sim.legIndex += 1
+    if (sim.legIndex >= sim.legs.length) {
+      s.completeRun(sim.runId)
+      sim.phase = 'done'
+      return
+    }
+    beginLeg(sim)
+  }
+
+  /**
+   * SPEC edge case: an order cancelled after dispatch, or any stop a dispatcher
+   * flagged while the van was still rolling toward it.
+   *
+   * Before this existed the engine drove to the stop and called
+   * `setStopStatus(id, 'arrived')` regardless, which silently overwrote the
+   * exception and then verified and closed a stop nobody was going to serve.
+   * Now the van drives the leg it is already on — the polyline for the NEXT leg
+   * starts at this stop's kerb, so there is no honest way to cut the corner —
+   * and then rolls straight through without arriving, dwelling or logging.
+   */
+  function skipIfCancelled(sim: RunSim, stopId: string): boolean {
+    const stop = store().stops[stopId]
+    if (!stop || stop.status !== 'exception') return false
+    nextLeg(sim)
+    return true
+  }
+
   function beginLeg(sim: RunSim): void {
     const s = store()
     sim.progress = 0
@@ -144,7 +177,12 @@ export function createSimEngine(): SimEngine {
     const stopId = stopIdAt(sim.runId, sim.legIndex)
     if (stopId) {
       const stop = s.stops[stopId]
-      s.setStopStatus(stopId, 'enroute')
+      // Only a stop still waiting to be served becomes en route. A stop that
+      // was cancelled (or flagged) before the van left the previous kerb must
+      // keep its exception — writing `enroute` over it would resurrect an order
+      // nobody is going to deliver, and the arrival guard downstream reads the
+      // status to decide whether to skip.
+      if (stop?.status === 'pending') s.setStopStatus(stopId, 'enroute')
       s.logEvent({
         runId: sim.runId,
         stopId,
@@ -224,14 +262,10 @@ export function createSimEngine(): SimEngine {
           sim.phase = 'done'
           return
         }
-        const stop = s.stops[stopId]
-        s.setStopStatus(stopId, 'arrived')
-        s.logEvent({
-          runId: sim.runId,
-          stopId,
-          type: 'arrived',
-          meta: { order: stop?.orderCode ?? stopId },
-        })
+        if (skipIfCancelled(sim, stopId)) return
+        // Window compliance is judged inside the action, once, and written to
+        // the event log — see store.arriveStop.
+        s.arriveStop(stopId)
         sim.dwellRemainingS = dwellFor(sim.runId, sim.legIndex, generation).arriveS
         sim.phase = 'dwell_arrive'
         return
@@ -245,6 +279,8 @@ export function createSimEngine(): SimEngine {
           sim.phase = 'driving'
           return
         }
+        // Cancelled on the doorstep, between arriving and the ID check.
+        if (skipIfCancelled(sim, stopId)) return
         const failed = idFails(sim.runId, sim.legIndex, generation)
         sim.currentFailed = failed
         s.verifyId(stopId, !failed)
@@ -257,6 +293,12 @@ export function createSimEngine(): SimEngine {
         sim.dwellRemainingS -= dtSimS
         if (sim.dwellRemainingS > 0) return
         const stopId = stopIdAt(sim.runId, sim.legIndex)
+        // A cancellation that lands after the ID check would otherwise close a
+        // stop nobody served: `closeStop` only requires `idChecked`, which is
+        // true by now. The ID-fail path keeps its own dwell — that exception is
+        // this engine's own, and cutting it short would make the failure blink
+        // past on the console.
+        if (stopId && !sim.currentFailed && skipIfCancelled(sim, stopId)) return
         if (stopId && !sim.currentFailed) s.closeStop(stopId)
         sim.dwellRemainingS = dwellFor(sim.runId, sim.legIndex, generation).closeS
         sim.phase = 'dwell_close'
@@ -266,13 +308,7 @@ export function createSimEngine(): SimEngine {
       case 'dwell_close': {
         sim.dwellRemainingS -= dtSimS
         if (sim.dwellRemainingS > 0) return
-        sim.legIndex += 1
-        if (sim.legIndex >= sim.legs.length) {
-          s.completeRun(sim.runId)
-          sim.phase = 'done'
-          return
-        }
-        beginLeg(sim)
+        nextLeg(sim)
         return
       }
 

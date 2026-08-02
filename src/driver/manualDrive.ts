@@ -81,9 +81,12 @@ export function stepDriverRun(
 
   if (stop.status !== 'enroute') {
     // Parked. `pending` means the driver has not departed yet (still standing
-    // where the previous stop left them); everything else means they are at the
-    // door, so pin the van to the stop rather than leaving it mid-street.
-    if (stop.status !== 'pending') sim.progress = 1
+    // where the previous stop left them); `arrived`/`id_check`/`delivered` mean
+    // they are at the door, so pin the van to the stop rather than leaving it
+    // mid-street. `exception` is neither: an order cancelled (or flagged) while
+    // the van was still rolling leaves it exactly where it was — pinning it
+    // would teleport the truck forward to a kerb it never reached.
+    if (stop.status !== 'pending' && stop.status !== 'exception') sim.progress = 1
     return
   }
 

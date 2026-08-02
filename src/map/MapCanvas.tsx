@@ -430,6 +430,8 @@ export function MapCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MlMap | null>(null)
   const readyRef = useRef(false)
+  /** Theme whose basemap is actually installed in the map right now. */
+  const styleThemeRef = useRef<Theme>(useStore.getState().theme)
   const rafRef = useRef(0)
   const renderRef = useRef<Record<string, DriverRender>>({})
   const shapeSigRef = useRef('')
@@ -465,12 +467,30 @@ export function MapCanvas({
     ;(window as unknown as Record<string, unknown>).__MANIFEST_MAP__ = map
     map.on('error', (e) => console.error('[map]', e.error?.message ?? e))
 
-    const onStyleLoad = () => {
-      installOverlays(map, useStore.getState().theme)
+    /**
+     * Runs on a microtask, not inside the 'style.load' dispatch: honouring a
+     * queued flip means calling setStyle again, and re-entering setStyle while
+     * maplibre is still walking that event's listener list swaps the style out
+     * from under the listeners behind us. A microtask is late enough to be off
+     * the stack and early enough that the browser cannot paint the gap.
+     */
+    const settleStyle = () => {
+      if (mapRef.current !== map) return
+      // A flip that arrived while this style was loading is honoured rather than
+      // dropped — otherwise the panels sit in one theme and the map in the
+      // other, permanently, and the only way back is another click.
+      const wanted = useStore.getState().theme
+      if (styleThemeRef.current !== wanted) {
+        applyMapTheme(map, wanted)
+        return
+      }
+      installOverlays(map, wanted)
       readyRef.current = true
       shapeSigRef.current = ''
       syncShapes(true)
     }
+
+    const onStyleLoad = () => queueMicrotask(settleStyle)
 
     map.on('style.load', onStyleLoad)
 
@@ -511,13 +531,49 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /**
+   * Swap the basemap for `next`, holding the camera exactly where it is.
+   *
+   * On the camera: maplibre v5 does NOT move it here. `setStyle` with an object
+   * takes the diff path, and `Style.setState` explicitly skips the
+   * setCenter/setZoom/setBearing/setPitch/setRoll operations; the full-rebuild
+   * fallback keeps the map's transform because a Style has never owned it; and
+   * the one camera write on 'style.load' only fires for a stylesheet that
+   * declares `center`/`zoom` (ours declares neither). The snapshot below is
+   * therefore a no-op today and a guard tomorrow — the restore is synchronous,
+   * inside the same call, so it cannot fight a later flyTo, fitBounds or a
+   * user's own pan.
+   */
+  function applyMapTheme(map: MlMap, next: Theme): void {
+    styleThemeRef.current = next
+    readyRef.current = false
+    const before = {
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    }
+    map.setStyle(buildMapStyle(next))
+    // 'style.load' re-installs the overlays and re-pushes the fleet data.
+    const after = map.getCenter()
+    if (
+      map.getZoom() !== before.zoom ||
+      map.getBearing() !== before.bearing ||
+      map.getPitch() !== before.pitch ||
+      after.lng !== before.center.lng ||
+      after.lat !== before.center.lat
+    ) {
+      map.jumpTo(before)
+    }
+  }
+
   /* ---- theme flip: restyle without a reload ---- */
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !readyRef.current) return
-    readyRef.current = false
-    map.setStyle(buildMapStyle(theme))
-    // 'style.load' handler above re-installs overlays and re-pushes data
+    if (!map || styleThemeRef.current === theme) return
+    // Deliberately NOT gated on readyRef: a click during the opening style load
+    // is still a click, and applyMapTheme/onStyleLoad coalesce the flips.
+    applyMapTheme(map, theme)
   }, [theme])
 
   /* ---- imperative data pump: routes + stops on change, drivers every frame -- */

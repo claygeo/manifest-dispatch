@@ -47,6 +47,7 @@ import {
   endLiveApply,
   noteLocalEvent,
 } from './apply'
+import { enqueueEvent, flushQueue, retainQueue, stopFlush } from './queue'
 import {
   isGpsPing,
   isRunSnapshot,
@@ -67,6 +68,8 @@ interface ActiveSession {
   /** Cleared on teardown. */
   disposers: Array<() => void>
   closed: boolean
+  /** true between SUBSCRIBED and the first CHANNEL_ERROR / TIMED_OUT. */
+  channelOpen: boolean
   /** Wall-clock of the last GPS ping seen or sent. */
   lastTrafficMs: number
 }
@@ -136,6 +139,9 @@ export async function enterLive(
   const s = store()
   s.setLive('connecting', code)
   beginLiveApply()
+  // Anything this device still owes THIS session — including from a tab that
+  // was closed mid-outage — is picked back up. Debris from other codes is not.
+  retainQueue(code)
 
   let client: SupabaseClient
   try {
@@ -170,6 +176,7 @@ export async function enterLive(
     channel,
     disposers: [],
     closed: false,
+    channelOpen: false,
     lastTrafficMs: 0,
   }
   active = session
@@ -192,12 +199,10 @@ export async function enterLive(
     publishSnapshot(true)
   })
 
-  let channelOpen = false
-
   // The socket never came up within the budget. Say so, and keep the local sim
   // running underneath — a dead transport must not take the demo with it.
   const connectTimer = window.setTimeout(() => {
-    if (session.closed || channelOpen) return
+    if (session.closed || session.channelOpen) return
     degrade()
   }, CONNECT_TIMEOUT_MS)
   session.disposers.push(() => window.clearTimeout(connectTimer))
@@ -205,13 +210,16 @@ export async function enterLive(
   channel.subscribe((status) => {
     if (session.closed) return
     if (status === 'SUBSCRIBED') {
-      channelOpen = true
+      session.channelOpen = true
+      // Reconnect: the outbox goes out before anything new is published, so the
+      // shift's log lands in the order it happened.
+      pumpQueue(session)
       if (session.role === 'driver') startDriverPublisher(session)
       else void safeSend(session, MSG_HELLO, { role: session.role })
       return
     }
     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      channelOpen = false
+      session.channelOpen = false
       // The transport is gone. Hand the run back to the sim engine immediately
       // rather than leaving a dead van parked on the map behind an amber
       // banner — "demo continues locally" has to be literally true.
@@ -231,6 +239,12 @@ export async function enterLive(
     waiting()
   }, 2_000)
   session.disposers.push(() => window.clearInterval(watchdog))
+
+  // The browser knows about the radio before any RPC times out — take the hint
+  // rather than waiting for the backoff ladder to come round again.
+  const onOnline = () => pumpQueue(session)
+  window.addEventListener('online', onOnline)
+  session.disposers.push(() => window.removeEventListener('online', onOnline))
 }
 
 /* -------------------------------------------------------------- leave ---- */
@@ -239,6 +253,10 @@ export function leaveLive(): void {
   const session = active
   openToken += 1
   active = null
+  // Stop the retry ladder but KEEP the outbox: a driver who backgrounds the app
+  // in a dead zone still owes those events, and the next session with the same
+  // code picks them up.
+  stopFlush()
   if (session) {
     session.closed = true
     for (const dispose of session.disposers) dispose()
@@ -362,7 +380,9 @@ function startDriverPublisher(session: ActiveSession): void {
       if (event.id.startsWith('seed-') || logged.has(event.id)) continue
       logged.add(event.id)
       noteLocalEvent(event.id)
-      void logDispatchEvent(session, event)
+      // Marking it sent here is only honest because the outbox is durable:
+      // an event that cannot go out right now is held, not dropped.
+      logDispatchEvent(session, event)
     }
   }
 
@@ -399,13 +419,44 @@ async function callRpc(
   }
 }
 
-async function logDispatchEvent(session: ActiveSession, event: DeliveryEvent): Promise<void> {
-  const ok = await callRpc(session.client, 'api_log_event', {
-    p_code: session.code,
-    p_type: event.type,
-    p_payload: event as unknown as Record<string, unknown>,
-  })
-  if (!ok && !session.closed) degrade()
+/**
+ * Hand an event to the outbox, then try to drain it.
+ *
+ * SPEC: connectivity loss means "events queue locally, honest reconnect banner,
+ * no silent data loss". The write is therefore never fire-and-forget: it is
+ * accepted locally first (and persisted, so closing the tab in a dead zone does
+ * not lose the shift), and the transport catches up on its own schedule.
+ */
+function logDispatchEvent(session: ActiveSession, event: DeliveryEvent): void {
+  enqueueEvent(session.code, event)
+  pumpQueue(session)
+}
+
+function pumpQueue(session: ActiveSession): void {
+  if (session.closed) return
+  flushQueue(
+    (item) =>
+      callRpc(session.client, 'api_log_event', {
+        p_code: item.code,
+        p_type: item.event.type,
+        p_payload: item.event as unknown as Record<string, unknown>,
+      }),
+    {
+      onStall: () => {
+        if (!session.closed) degrade()
+      },
+      onDrain: () => {
+        // Everything written during the outage is on record now — but an
+        // emptied outbox only proves the RPC path is back. The banner does not
+        // come down until the broadcast channel is up too, because a console
+        // watching a frozen van is exactly the lie amber exists to prevent.
+        if (session.closed || !session.channelOpen) return
+        const s = store()
+        if (s.liveStatus !== 'degraded') return
+        s.setLive(session.lastTrafficMs > 0 ? 'connected' : 'connecting', s.liveCode)
+      },
+    },
+  )
 }
 
 /** Rebuild the feed from `live_events` — session continuity across reloads. */

@@ -13,7 +13,7 @@
  * — the store republishes fleet state ~5×/second.
  */
 
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ExceptionReason, Stop } from '../types'
 import { formatMoney, PAYMENT_LABEL, shortName, STOP_STATUS_LABEL } from '../format'
@@ -32,10 +32,16 @@ export interface StopTicketProps {
   canReorder: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  /** The exception on this stop is an order cancellation, not a doorstep failure. */
+  cancelled: boolean
   onSelect: (stopId: string) => void
   onReorder: (stopId: string, direction: -1 | 1) => void
   onException: (stopId: string, reason: ExceptionReason) => void
+  onCancel: (stopId: string) => void
 }
+
+/** How long the CANCEL control stays armed before it forgets it was pressed. */
+const CANCEL_ARM_MS = 4000
 
 const OPEN_STATUSES: Stop['status'][] = ['pending', 'enroute', 'arrived', 'id_check']
 
@@ -57,8 +63,10 @@ function ticketClass(stop: Stop, selected: boolean, late: boolean, canReorder: b
   return parts.join(' ')
 }
 
-function statusChip(stop: Stop, late: boolean): { text: string; amber: boolean } {
-  if (stop.status === 'exception') return { text: 'EXCEPTION', amber: true }
+function statusChip(stop: Stop, late: boolean, cancelled: boolean): { text: string; amber: boolean } {
+  // Still ONE chip (no badge pile): a cancelled order just names itself, because
+  // "EXCEPTION" would send a dispatcher chasing a doorstep that never happened.
+  if (stop.status === 'exception') return { text: cancelled ? 'CANCELLED' : 'EXCEPTION', amber: true }
   if (stop.status === 'delivered') return { text: STOP_STATUS_LABEL.delivered, amber: false }
   if (late) return { text: 'LATE', amber: true }
   return { text: STOP_STATUS_LABEL[stop.status], amber: false }
@@ -73,12 +81,29 @@ function StopTicketBase({
   canReorder,
   canMoveUp,
   canMoveDown,
+  cancelled,
   onSelect,
   onReorder,
   onException,
+  onCancel,
 }: StopTicketProps) {
-  const chip = statusChip(stop, late)
+  const chip = statusChip(stop, late, cancelled)
   const open = OPEN_STATUSES.includes(stop.status)
+
+  /**
+   * Cancelling an order pulls it out of a run that is already on the road, and
+   * there is no undo. One click arms, the second commits, and walking away
+   * disarms — the same two-beat every irreversible control in an ops tool has.
+   */
+  const [cancelArmed, setCancelArmed] = useState(false)
+  useEffect(() => {
+    if (!cancelArmed) return
+    const id = window.setTimeout(() => setCancelArmed(false), CANCEL_ARM_MS)
+    return () => window.clearTimeout(id)
+  }, [cancelArmed])
+  useEffect(() => {
+    if (!selected || !open) setCancelArmed(false)
+  }, [selected, open])
 
   return (
     <div
@@ -170,9 +195,32 @@ function StopTicketBase({
                   {f.label}
                 </button>
               ))}
+              <span className="label">ORDER</span>
+              <button
+                type="button"
+                className="btn dc-btn-xs"
+                onClick={() => {
+                  if (cancelArmed) onCancel(stop.id)
+                  else setCancelArmed(true)
+                }}
+                aria-label={
+                  cancelArmed
+                    ? `Confirm cancelling order ${stop.orderCode}`
+                    : `Cancel order ${stop.orderCode}`
+                }
+                title="Order cancelled after dispatch — the run skips this stop"
+              >
+                {cancelArmed ? 'CONFIRM CANCEL' : 'CANCEL'}
+              </button>
             </>
           ) : (
-            <span className="label">{stop.status === 'exception' ? 'UNDELIVERABLE' : 'CLOSED OUT'}</span>
+            <span className="label">
+              {stop.status === 'exception'
+                ? cancelled
+                  ? 'ORDER CANCELLED'
+                  : 'UNDELIVERABLE'
+                : 'CLOSED OUT'}
+            </span>
           )}
           <Link className="dc-link" style={{ marginLeft: 'auto' }} to={`/t/${stop.orderCode}`}>
             TRACKING →

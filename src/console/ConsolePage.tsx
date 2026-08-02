@@ -21,9 +21,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MapCanvas, { type MapPadding } from '../map/MapCanvas'
-import { runIdOf, useStore } from '../store'
+import { EXCEPTION_LABEL, runIdOf, useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
-import { fleetCounts, recentEvents, runStops } from '../selectors'
+import { cancelledStopIds, fleetCounts, recentEvents, runStops } from '../selectors'
 import type { DeliveryEvent, ExceptionReason } from '../types'
 import RunPanel from './RunPanel'
 import EventFeed from './EventFeed'
@@ -110,6 +110,12 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
         ? runIdOf(selection.id)
         : null
 
+  /** Which exceptions are cancellations — `Stop` has no reason field, the log does. */
+  const cancelledIds = useMemo(
+    () => cancelledStopIds(events, EXCEPTION_LABEL.cancelled),
+    [events],
+  )
+
   const scopeRunId = feedScoped ? selectedRunId : null
   const feed = useMemo(
     () =>
@@ -141,6 +147,11 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
 
   const flagException = useCallback((stopId: string, reason: ExceptionReason) => {
     useStore.getState().flagException(stopId, reason)
+  }, [])
+
+  /** SPEC edge case: order cancelled after dispatch. The run skips the stop. */
+  const cancelStop = useCallback((stopId: string) => {
+    useStore.getState().cancelStop(stopId)
   }, [])
 
   const toggleRunCollapse = useCallback((runId: string) => {
@@ -303,12 +314,14 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
               selection={selection}
               collapsed={Boolean(collapsedRuns[runId])}
               generation={generation}
+              cancelledIds={cancelledIds}
               onToggleCollapse={toggleRunCollapse}
               onSelectRun={selectRun}
               onSelectStop={selectStop}
               onStartRun={startRun}
               onReorder={reorder}
               onException={flagException}
+              onCancel={cancelStop}
             />
           )
         })}

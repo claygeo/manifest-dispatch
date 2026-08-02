@@ -34,6 +34,22 @@ export const SYNC_DEBOUNCE_MS = 120
 /** Tail of the run's event log carried on every snapshot, for lossy-broadcast catch-up. */
 export const SYNC_EVENT_TAIL = 40
 
+/* ------------------------------------------------------- offline outbox --- */
+
+/** Where the unsent dispatch events live across a reload. See ./queue.ts. */
+export const QUEUE_STORAGE_KEY = 'manifest.live.outbox'
+
+/**
+ * Hard ceiling on queued events. A whole demo shift is ~40 events per run, so
+ * 500 covers an outage far longer than any session while keeping the
+ * localStorage slot small enough to write on every change.
+ */
+export const QUEUE_MAX = 500
+
+/** First retry delay after a failed flush; doubles to the cap. */
+export const QUEUE_BACKOFF_MS = 2_000
+export const QUEUE_BACKOFF_MAX_MS = 30_000
+
 /** SPEC: "creates `session:<code>` broadcast channel". */
 export function channelFor(code: string): string {
   return `session:${code}`

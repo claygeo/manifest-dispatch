@@ -8,7 +8,13 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rpc": "node scripts/test-rpcs.mjs",
+    "bench:broadcast": "node scripts/bench-broadcast.mjs --tiers 10,25,50 --seconds 25",
+    "bench:sim": "python scripts/bench-sim.py --seconds 20 --port 5226",
+    "bench:bundle": "node scripts/bench-bundle.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.5",
@@ -26,6 +32,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^5.1.4",
     "typescript": "^5.9.2",
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "vitest": "^3.2.7"
   }
 }

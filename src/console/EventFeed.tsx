@@ -17,6 +17,7 @@
 import { memo } from 'react'
 import type { DeliveryEvent, DeliveryEventType, Run, Stop } from '../types'
 import { formatStamp } from '../format'
+import { isLateArrivalNote } from '../window'
 import { ChevronRight } from './icons'
 
 const TYPE_LABEL: Record<DeliveryEventType, string> = {
@@ -31,6 +32,16 @@ const TYPE_LABEL: Record<DeliveryEventType, string> = {
 }
 
 const AMBER_TYPES: DeliveryEventType[] = ['exception', 'id_failed']
+
+/**
+ * SPEC: an out-of-window arrival is flagged and logged. `meta.window` carries
+ * the note (see store.arriveStop); only a LATE one earns amber, because a
+ * driver waiting for a window to open is the job, not an exception.
+ */
+function isAmber(event: DeliveryEvent): boolean {
+  if (AMBER_TYPES.includes(event.type)) return true
+  return event.type === 'arrived' && isLateArrivalNote(event.meta?.window)
+}
 
 export interface EventFeedProps {
   /** Newest first — pass `recentEvents(...)` straight through. */
@@ -55,6 +66,8 @@ function detailOf(event: DeliveryEvent): string {
       return [meta.payment, meta.amount].filter(Boolean).join(' · ')
     case 'departed':
       return meta.to ? `TO ${meta.to}` : ''
+    case 'arrived':
+      return meta.window ?? ''
     case 'exception':
     case 'id_failed':
       return meta.reason ?? ''
@@ -166,7 +179,7 @@ export function EventFeed({
           events.map((event) => {
             const stop = event.stopId ? stops[event.stopId] : null
             const subject = stop?.orderCode ?? runs[event.runId]?.label.toUpperCase() ?? ''
-            const tone: EventRowProps['tone'] = AMBER_TYPES.includes(event.type)
+            const tone: EventRowProps['tone'] = isAmber(event)
               ? 'amber'
               : scopableRunId && event.runId === scopableRunId
                 ? 'accent'

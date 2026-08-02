@@ -21,9 +21,9 @@
 
 import { Fragment, useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useStore } from '../store'
+import { EXCEPTION_LABEL, useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
-import { runCounts, runStops, windowLabel, windowState } from '../selectors'
+import { isLateArrivalNote, runCounts, runStops, windowLabel, windowState } from '../selectors'
 import { DEPOT_NAME } from '../data/seed'
 import { seededRange } from '../sim/geo'
 import {
@@ -56,6 +56,14 @@ interface Stamps {
   arrived: number | null
   verified: number | null
   closed: number | null
+  /**
+   * Window note recorded AT the arrival, e.g. 'LATE — WINDOW CLOSED 4:00 PM'.
+   * The projected `windowState` cannot answer this after the fact: it reports
+   * 'closed' for a delivered stop, so a late delivery would print clean.
+   */
+  arrivedNote: string | null
+  /** Exception reason label, when the stop went undeliverable or was cancelled. */
+  exception: string | null
 }
 
 /** Event timestamps per stop, folded once per render. */
@@ -63,11 +71,22 @@ function buildStamps(events: DeliveryEvent[]): Record<string, Stamps> {
   const out: Record<string, Stamps> = {}
   for (const e of events) {
     if (!e.stopId) continue
-    const s = out[e.stopId] ?? (out[e.stopId] = { arrived: null, verified: null, closed: null })
+    const s =
+      out[e.stopId] ??
+      (out[e.stopId] = {
+        arrived: null,
+        verified: null,
+        closed: null,
+        arrivedNote: null,
+        exception: null,
+      })
     const t = Date.parse(e.at)
-    if (e.type === 'arrived') s.arrived = t
-    else if (e.type === 'id_verified') s.verified = t
+    if (e.type === 'arrived') {
+      s.arrived = t
+      s.arrivedNote = e.meta?.window ?? null
+    } else if (e.type === 'id_verified') s.verified = t
     else if (e.type === 'closed') s.closed = t
+    else if (e.type === 'exception' || e.type === 'id_failed') s.exception = e.meta?.reason ?? null
   }
   return out
 }
@@ -164,9 +183,20 @@ export function ManifestPage() {
   const collected = list
     .filter((s) => s.status === 'delivered')
     .reduce((sum, s) => sum + s.amountDue, 0)
-  const lateCount = list.filter(
+  /* Window compliance, split honestly: one number is a projection about stops
+     still open, the other is a recorded fact about stops already served. */
+  const projectedLate = list.filter(
     (s) => s.status !== 'delivered' && windowState(s, simNowMs) === 'late',
   ).length
+  const arrivedLate = list.filter((s) => isLateArrivalNote(stamps[s.id]?.arrivedNote)).length
+  const cancelledCount = list.filter(
+    (s) => s.status === 'exception' && stamps[s.id]?.exception === EXCEPTION_LABEL.cancelled,
+  ).length
+
+  const exceptionParts: string[] = []
+  if (arrivedLate > 0) exceptionParts.push(`${arrivedLate} ARRIVED LATE`)
+  if (projectedLate > 0) exceptionParts.push(`${projectedLate} PROJECTED LATE`)
+  if (cancelledCount > 0) exceptionParts.push(`${cancelledCount} CANCELLED`)
 
   return (
     <div className="mf-root">
@@ -223,8 +253,8 @@ export function ManifestPage() {
           <Field label="RUN STATUS" value={RUN_STATUS_LABEL[run.status]} />
           <Field
             label="WINDOW EXCEPTIONS"
-            value={lateCount === 0 ? 'NONE' : `${lateCount} STOP${lateCount === 1 ? '' : 'S'} LATE`}
-            amber={lateCount > 0}
+            value={exceptionParts.length === 0 ? 'NONE' : exceptionParts.join(' · ')}
+            amber={exceptionParts.length > 0}
           />
         </div>
 
@@ -249,8 +279,13 @@ export function ManifestPage() {
             </thead>
             <tbody>
               {list.map((stop, i) => {
-                const late = stop.status !== 'delivered' && windowState(stop, simNowMs) === 'late'
+                const stamp = stamps[stop.id]
+                const lateArrival = isLateArrivalNote(stamp?.arrivedNote)
+                const late =
+                  lateArrival || (stop.status !== 'delivered' && windowState(stop, simNowMs) === 'late')
                 const flagged = late || stop.status === 'exception'
+                const cancelled =
+                  stop.status === 'exception' && stamp?.exception === EXCEPTION_LABEL.cancelled
                 return (
                   <Fragment key={stop.id}>
                     <tr className="mf-stop">
@@ -262,9 +297,13 @@ export function ManifestPage() {
                       <td className="mf-num">{formatMoney(stop.amountDue)}</td>
                       <td className="mf-nowrap">{PAYMENT_LABEL[stop.payment]}</td>
                       <td className={`mf-nowrap${flagged ? ' mf-flag' : ''}`}>
-                        {late && stop.status !== 'exception'
-                          ? 'LATE'
-                          : STOP_STATUS_LABEL[stop.status]}
+                        {cancelled
+                          ? EXCEPTION_LABEL.cancelled
+                          : late && stop.status !== 'exception'
+                            ? stop.status === 'delivered'
+                              ? 'DELIVERED LATE'
+                              : 'LATE'
+                            : STOP_STATUS_LABEL[stop.status]}
                       </td>
                     </tr>
                     <tr className="mf-items">
@@ -306,19 +345,37 @@ export function ManifestPage() {
               {list.map((stop) => {
                 const s = stamps[stop.id]
                 const delivered = stop.status === 'delivered'
+                const lateArrival = isLateArrivalNote(s?.arrivedNote)
+                const cancelled =
+                  stop.status === 'exception' && s?.exception === EXCEPTION_LABEL.cancelled
                 return (
                   <tr key={stop.id}>
                     <td className="mf-nowrap">{stop.orderCode}</td>
-                    <td className="mf-nowrap">{clockOr(s?.arrived)}</td>
+                    {/* The arrival stamp carries its own window verdict: once a
+                        stop closes, nothing else in the record remembers that
+                        the driver got there after the window shut. */}
+                    <td className={`mf-nowrap${lateArrival ? ' mf-flag' : ''}`}>
+                      {clockOr(s?.arrived)}
+                      {lateArrival ? ' LATE' : ''}
+                    </td>
                     <td className="mf-nowrap">
                       {stop.idChecked ? `[X] ${clockOr(s?.verified)}` : '[ ]'}
                     </td>
-                    <td className="mf-nowrap">
-                      {clockOr(stop.closedAt ? Date.parse(stop.closedAt) : s?.closed)}
+                    <td className={`mf-nowrap${cancelled ? ' mf-flag' : ''}`}>
+                      {cancelled
+                        ? EXCEPTION_LABEL.cancelled
+                        : clockOr(stop.closedAt ? Date.parse(stop.closedAt) : s?.closed)}
                     </td>
                     <td className="mf-num">{delivered ? formatMoney(stop.amountDue) : '—'}</td>
                     <td className="mf-sign-cell">
-                      <div className="mf-sign-rule" />
+                      {/* A cancelled order was never handed over; a signature
+                          rule there would invite a signature for a transfer
+                          that did not happen. */}
+                      {cancelled ? (
+                        <span className="micro micro--dim">NO TRANSFER — ORDER CANCELLED</span>
+                      ) : (
+                        <div className="mf-sign-rule" />
+                      )}
                     </td>
                   </tr>
                 )

@@ -51,6 +51,7 @@ export function DriverPage() {
   const setStopStatus = useStore((s) => s.setStopStatus)
   const advanceRunPosition = useStore((s) => s.advanceRunPosition)
   const logEvent = useStore((s) => s.logEvent)
+  const arriveStop = useStore((s) => s.arriveStop)
   const verifyId = useStore((s) => s.verifyId)
   const closeStop = useStore((s) => s.closeStop)
   const flagException = useStore((s) => s.flagException)
@@ -169,8 +170,10 @@ export function DriverPage() {
 
   function arrive(): void {
     if (!run || !stop) return
-    setStopStatus(stop.id, 'arrived')
-    logEvent({ runId: run.id, stopId: stop.id, type: 'arrived', meta: { order: stop.orderCode } })
+    // Same action the sim engine calls: it stamps the arrival and, when the
+    // window has already closed, logs that too. Never blocks — SPEC keeps an
+    // out-of-window stop completable.
+    arriveStop(stop.id)
   }
 
   function advanceQueue(): void {

@@ -35,12 +35,15 @@ export interface RunPanelProps {
   collapsed: boolean
   /** Fleet generation — scopes the ETA-drift promise memory to this dispatch. */
   generation: number
+  /** Stops whose exception is an order cancellation. Derived from the event log. */
+  cancelledIds: Set<string>
   onToggleCollapse: (runId: string) => void
   onSelectRun: (runId: string) => void
   onSelectStop: (stopId: string) => void
   onStartRun: (runId: string) => void
   onReorder: (stopId: string, direction: -1 | 1) => void
   onException: (stopId: string, reason: ExceptionReason) => void
+  onCancel: (stopId: string) => void
 }
 
 /** 'run-a' -> 'A'. The plate reads `RUN A — SOUTH TAMPA`. */
@@ -85,12 +88,14 @@ export function RunPanel({
   selection,
   collapsed,
   generation,
+  cancelledIds,
   onToggleCollapse,
   onSelectRun,
   onSelectStop,
   onStartRun,
   onReorder,
   onException,
+  onCancel,
 }: RunPanelProps) {
   const counts = runCounts(view, run.id)
   const selectedRun = selection?.kind === 'run' && selection.id === run.id
@@ -212,9 +217,11 @@ export function RunPanel({
               canReorder={staged}
               canMoveUp={i > 0}
               canMoveDown={i < stops.length - 1}
+              cancelled={cancelledIds.has(stop.id)}
               onSelect={onSelectStop}
               onReorder={onReorder}
               onException={onException}
+              onCancel={onCancel}
             />
           ))}
         </div>

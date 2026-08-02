@@ -4,7 +4,7 @@
  * "current stop" and "late" mean.
  */
 
-import type { DeliveryEvent, ManifestFleetView, Run, Stop, WindowState } from './selectors.types'
+import type { DeliveryEvent, ManifestFleetView, Run, Stop } from './selectors.types'
 import { runIdOf } from './store'
 
 /** Stops of a run, in the run's own (reorderable) sequence. */
@@ -78,35 +78,37 @@ export function findStopByOrderCode(view: ManifestFleetView, orderCode: string):
 
 /* ----------------------------------------------------------- windows ----- */
 
-/** '2:00 PM' -> ms on the same calendar day as `refMs` (nearest day wins). */
-export function parseClock(clock: string, refMs: number): number {
-  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(clock.trim())
-  if (!m) return refMs
-  let h = parseInt(m[1], 10) % 12
-  if (m[3].toUpperCase() === 'PM') h += 12
-  const d = new Date(refMs)
-  d.setHours(h, parseInt(m[2], 10), 0, 0)
-  let ms = d.getTime()
-  const DAY = 86_400_000
-  if (ms - refMs > DAY / 2) ms -= DAY
-  if (refMs - ms > DAY / 2) ms += DAY
-  return ms
-}
+/**
+ * Window maths lives in ./window.ts so the store can log an out-of-window
+ * arrival without importing this file (which imports the store). Re-exported
+ * here because every surface already reaches for it through selectors.
+ */
+export { arrivalWindowNote, isLateArrivalNote, parseClock, windowLabel, windowState } from './window'
+
+/* -------------------------------------------------------- exceptions ----- */
 
 /**
- * SPEC: "stops outside their window flag amber on console."
- * `late` is the only state that earns amber — everything else stays neutral.
+ * Exception reason label per stop, taken from the event log — `Stop` carries no
+ * reason field and SPEC.md's data model is not ours to widen. Last write wins,
+ * which is what a re-flagged stop should show.
  */
-export function windowState(stop: Stop, simNowMs: number): WindowState {
-  if (stop.status === 'delivered') return 'closed'
-  const end = parseClock(stop.window[1], simNowMs)
-  const start = parseClock(stop.window[0], simNowMs)
-  const arrival = stop.etaMin === null ? simNowMs : simNowMs + stop.etaMin * 60_000
-  if (arrival > end) return 'late'
-  if (simNowMs >= start) return 'due'
-  return 'ok'
+export function exceptionReasons(events: DeliveryEvent[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const e of events) {
+    if (!e.stopId) continue
+    if (e.type !== 'exception' && e.type !== 'id_failed') continue
+    const reason = e.meta?.reason
+    if (reason) out[e.stopId] = reason
+  }
+  return out
 }
 
-export function windowLabel(stop: Stop): string {
-  return `${stop.window[0]}–${stop.window[1]}`
+/** Stops an order-cancellation took off the queue. Cheap `has` for the console. */
+export function cancelledStopIds(events: DeliveryEvent[], cancelledLabel: string): Set<string> {
+  const out = new Set<string>()
+  const reasons = exceptionReasons(events)
+  for (const [stopId, reason] of Object.entries(reasons)) {
+    if (reason === cancelledLabel) out.add(stopId)
+  }
+  return out
 }

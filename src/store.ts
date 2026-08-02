@@ -24,6 +24,7 @@ import type {
 } from './types'
 import { buildFleet, type Fleet } from './data/seed'
 import { formatMoney, PAYMENT_LABEL } from './format'
+import { arrivalWindowNote } from './window'
 
 const EVENT_CAP = 300
 const THEME_KEY = 'manifest.theme'
@@ -39,6 +40,7 @@ export const EXCEPTION_LABEL: Record<ExceptionReason, string> = {
   cannot_verify: 'CANNOT VERIFY',
   refused: 'REFUSED',
   address_issue: 'ADDRESS ISSUE',
+  cancelled: 'CANCELLED',
 }
 
 /** Partial position update pushed by whichever engine is driving. */
@@ -75,6 +77,14 @@ export interface ManifestState {
   liveStatus: LiveStatus
   liveCode: string | null
   /**
+   * Dispatch events written while the transport was down, still waiting to be
+   * flushed to Supabase (see src/live/queue.ts). Surfaced by the banner: SPEC
+   * requires connectivity loss to mean "events queue locally, honest reconnect
+   * banner, no silent data loss", and a count is the only honest way to say how
+   * much is still in the pipe.
+   */
+  liveQueued: number
+  /**
    * Run currently claimed by the driver app. While set, the sim engine yields
    * that run's stop ladder (arrive -> id_check -> delivered) to the driver and
    * only rolls the van down the leg the driver departed on. `null` = every run
@@ -106,9 +116,11 @@ export interface ManifestState {
   setStopStatus: (stopId: string, status: StopStatus, patch?: Partial<Stop>) => void
   setStopEta: (stopId: string, etaMin: number | null) => void
   setStopEtas: (etas: Record<string, number | null>) => void
+  arriveStop: (stopId: string) => void
   verifyId: (stopId: string, passed: boolean) => void
   closeStop: (stopId: string, payment?: PaymentMethod) => void
   flagException: (stopId: string, reason: ExceptionReason) => void
+  cancelStop: (stopId: string) => void
 
   /* ---- events + session ---- */
   logEvent: (
@@ -121,6 +133,7 @@ export interface ManifestState {
   setSimPaused: (paused: boolean) => void
   setSimNow: (ms: number) => void
   setLive: (status: LiveStatus, code?: string | null) => void
+  setLiveQueued: (count: number) => void
   setDriverRun: (runId: string | null) => void
   setLiveRun: (runId: string | null) => void
   setLiveFix: (fix: LiveFix | null) => void
@@ -171,6 +184,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   simPaused: false,
   liveStatus: 'off',
   liveCode: null,
+  liveQueued: 0,
   driverRunId: null,
   liveRunId: null,
   liveFix: null,
@@ -210,7 +224,11 @@ export const useStore = create<ManifestState>((set, get) => ({
     })
     if (firstStopId) {
       const first = get().stops[firstStopId]
-      get().setStopStatus(firstStopId, 'enroute')
+      // An order cancelled before the run was dispatched keeps its exception —
+      // see the same guard in the sim engine's beginLeg. The departure event
+      // still fires: the van really does roll toward that kerb, because the
+      // next leg's polyline starts there.
+      if (first?.status === 'pending') get().setStopStatus(firstStopId, 'enroute')
       get().logEvent({
         runId,
         stopId: firstStopId,
@@ -310,12 +328,41 @@ export const useStore = create<ManifestState>((set, get) => ({
     }),
 
   /**
+   * The driver pulled up. One action for both engines so the window judgement
+   * is made in exactly one place.
+   *
+   * SPEC edge case: "out-of-window arrival (flagged, logged, still completable
+   * — reality beats theory in the field)". The note goes on the event, which is
+   * what makes it survive the stop closing and reach the printed manifest. It
+   * is a record, never a veto: nothing below or downstream can refuse the
+   * arrival, and the close ladder is untouched.
+   */
+  arriveStop: (stopId) => {
+    const stop = get().stops[stopId]
+    if (!stop) return
+    const atMs = get().simNowMs || Date.now()
+    const note = arrivalWindowNote(stop, atMs)
+    get().setStopStatus(stopId, 'arrived')
+    get().logEvent({
+      runId: runIdOf(stopId),
+      stopId,
+      type: 'arrived',
+      meta: { order: stop.orderCode, ...(note ? { window: note } : {}) },
+    })
+  },
+
+  /**
    * SPEC/compliance: ID verification is a mandatory state between arrived and
    * closed. A failed check pushes the stop into `exception`, never to closed.
    */
   verifyId: (stopId, passed) => {
     const stop = get().stops[stopId]
     if (!stop) return
+    // Same rule as `flagException` below: a closed-out stop is history. Re-running
+    // the check would drag a delivered order back to `id_check` and leave the
+    // manifest claiming money was collected against a verification that, on the
+    // record, had not happened yet.
+    if (stop.status === 'delivered') return
     if (passed) {
       get().setStopStatus(stopId, 'id_check', { idChecked: true })
       get().logEvent({
@@ -340,6 +387,11 @@ export const useStore = create<ManifestState>((set, get) => ({
     if (!stop) return
     // the app enforces the law's shape: no close without a verified ID
     if (!stop.idChecked) return
+    // ...and exactly one close per stop. `idChecked` stays true forever once the
+    // licence has been read, so without this a second call would re-stamp
+    // `closedAt` and put a second "CLOSED — CASH $84.50" line in the event log,
+    // which is the manifest's record of custody and money. One delivery, one line.
+    if (stop.status === 'delivered') return
     const method = payment ?? stop.payment
     const at = new Date(get().simNowMs || Date.now()).toISOString()
     get().setStopStatus(stopId, 'delivered', { closedAt: at, payment: method, etaMin: null })
@@ -359,6 +411,10 @@ export const useStore = create<ManifestState>((set, get) => ({
   flagException: (stopId, reason) => {
     const stop = get().stops[stopId]
     if (!stop) return
+    // A closed-out stop is history: money was collected against a verified ID.
+    // Reopening it as an exception would put the manifest and the custody log
+    // in disagreement, so the action refuses rather than rewriting the record.
+    if (stop.status === 'delivered') return
     get().setStopStatus(stopId, 'exception', { etaMin: null })
     get().logEvent({
       runId: runIdOf(stopId),
@@ -366,6 +422,24 @@ export const useStore = create<ManifestState>((set, get) => ({
       type: 'exception',
       meta: { order: stop.orderCode, reason: EXCEPTION_LABEL[reason] },
     })
+  },
+
+  /**
+   * SPEC edge case: "order cancelled after dispatch (stop drops from run,
+   * manifest annotated)".
+   *
+   * The stop keeps its slot in `run.stops` — that array is index-aligned with
+   * the precomputed OSRM legs, so splicing it would desync every leg after it.
+   * What drops is the stop's place in the DELIVERY queue: `exception` is
+   * already the state every consumer reads as "not to be served" (the driver's
+   * queue, `currentStop`, `runCounts`, the ETA publisher), and the sim engine
+   * now drives past it without dwelling. The manifest annotates it as
+   * CANCELLED off this event's reason.
+   */
+  cancelStop: (stopId) => {
+    const stop = get().stops[stopId]
+    if (!stop || stop.status === 'exception') return
+    get().flagException(stopId, 'cancelled')
   },
 
   /* --------------------------------------------------- events + session -- */
@@ -402,6 +476,9 @@ export const useStore = create<ManifestState>((set, get) => ({
 
   setLive: (liveStatus, code) =>
     set((s) => ({ liveStatus, liveCode: code === undefined ? s.liveCode : code })),
+
+  setLiveQueued: (liveQueued) =>
+    set((s) => (s.liveQueued === liveQueued ? {} : { liveQueued })),
 
   setDriverRun: (driverRunId) => set({ driverRunId }),
 
