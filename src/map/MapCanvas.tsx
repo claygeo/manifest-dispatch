@@ -599,6 +599,7 @@ export function MapCanvas({
       rafRef.current = requestAnimationFrame(frame)
       const map = mapRef.current
       if (!map || !readyRef.current) return
+      if ((map as unknown as { _removed?: boolean })._removed) return
 
       const dt = Math.min((now - (lastFrameRef.current || now)) / 1000, 0.25)
       lastFrameRef.current = now
@@ -685,6 +686,7 @@ export function MapCanvas({
   function syncShapes(force: boolean) {
     const map = mapRef.current
     if (!map || !readyRef.current) return
+    if ((map as unknown as { _removed?: boolean })._removed) return
     const state = useStore.getState()
     const ids = propsRef.current.runIds ?? state.runOrder
 
