@@ -1,0 +1,159 @@
+/* =========================================================================
+   Live mode — the connectivity surface.
+
+   Two components only: the degraded banner and the driver's GPS rail
+   extension. Both compose on theme.css tokens; neither introduces a colour.
+   Amber here is load-bearing, not decorative — DESIGN.md lists connectivity
+   loss as one of the three things allowed to carry it.
+   ========================================================================= */
+
+.lv-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  padding: 4px 4px 4px 0;
+  background: var(--panel-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(14px) saturate(115%);
+  border: var(--hairline) solid var(--amber);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-ambient);
+  overflow: hidden;
+}
+
+/* Over a map: centred under the top bar, never covering a rail. */
+.lv-banner--float {
+  position: absolute;
+  top: calc(var(--dc-top, 62px) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  max-width: min(420px, calc(100% - 2 * var(--dc-edge, 14px)));
+}
+
+/* In a column (driver, tracking): a full-width strip in the flow. */
+.lv-banner--inline {
+  margin: 10px 12px 0;
+}
+
+/* Tracking has no top bar and a left-docked card — clear both rather than
+   landing the banner on top of the customer's order. */
+.tk-root .lv-banner--float {
+  top: 52px;
+}
+
+@media (min-width: 761px) {
+  .tk-root .lv-banner--float {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
+}
+
+.lv-banner__tag {
+  flex: none;
+  padding: 6px 9px;
+  border-radius: 0;
+}
+
+.lv-banner__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-banner__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--amber);
+  opacity: 0.75;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.lv-banner__close:hover {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------- driver GPS rail -- */
+
+/* The rail already carries DEMO FLEET + a coordinate readout. Live mode adds
+   the source toggle and, when the device refuses to cooperate, one amber line
+   explaining why the fix is simulated. */
+
+.lv-gps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lv-gps__read {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-gps__read--live {
+  color: var(--accent);
+}
+
+.lv-gps__toggle {
+  flex: none;
+  padding: 2px 6px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.lv-gps__toggle:hover {
+  color: var(--ink-2);
+  border-color: var(--accent-line);
+}
+
+.lv-gps__toggle--on {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+.lv-note {
+  padding: 3px 12px 4px;
+  background: var(--amber-soft);
+  border-bottom: var(--hairline) solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+/* Waiting for a first fix is information, not an exception — and DESIGN.md
+   spends amber only on things a human has to act on. */
+.lv-note--quiet {
+  background: transparent;
+  color: var(--ink-3);
+}
+

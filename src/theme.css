@@ -1,0 +1,530 @@
+/* =========================================================================
+   Manifest — design system tokens + base components.
+   Every value here traces to DESIGN.md. Two themes, same logic: a desaturated
+   field, ONE live accent, ONE deviation colour. Nothing else carries chroma.
+   ========================================================================= */
+
+:root {
+  /* ---- dark: night console (default when the OS prefers dark) ---- */
+  --field-deep: #0d1214; /* page / map water */
+  --field: #131a1d; /* land */
+  --panel: #1a2327;
+  --panel-glass: rgba(26, 35, 39, 0.82);
+  --border: #243036;
+  --border-strong: #33444b;
+
+  --ink: #e8f1f2;
+  --ink-2: #8fa6ab;
+  --ink-3: #54696f;
+
+  --accent: #39d0c4;
+  --accent-ink: #04090a; /* text ON accent */
+  --accent-soft: rgba(57, 208, 196, 0.16);
+  --accent-line: rgba(57, 208, 196, 0.45);
+
+  --amber: #e8a33d;
+  --amber-ink: #1a1204;
+  --amber-soft: rgba(232, 163, 61, 0.14);
+
+  --done: #54696f;
+  --done-soft: rgba(84, 105, 111, 0.12);
+
+  /* ---- type ---- */
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* bimodal scale (Psycho-Pass rule): ONE display size, everything else micro */
+  --type-display: 34px;
+  --type-display-sm: 28px;
+  --type-body: 13px;
+  --type-micro: 11px;
+  --type-plate: 10.5px;
+
+  --lh-display: 1;
+  --lh-body: 1.45;
+
+  /* ---- geometry ---- */
+  --radius: 6px;
+  --radius-sm: 3px;
+  --hairline: 1px;
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+  --gap-5: 24px;
+
+  --shadow-ambient: 0 1px 0 rgba(0, 0, 0, 0.4), 0 8px 24px -18px rgba(0, 0, 0, 0.9);
+
+  /* ---- motion: metabolic, never performative ---- */
+  --t-fast: 120ms;
+  --t-base: 150ms;
+  --t-slow: 250ms;
+  --ease: cubic-bezier(0.2, 0.6, 0.25, 1);
+
+  color-scheme: dark;
+}
+
+/* Light — paper manifest. Applied by OS preference before JS boots... */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --field-deep: #e9e6dd;
+    --field: #f4f2ec;
+    --panel: #ffffff;
+    --panel-glass: rgba(255, 255, 255, 0.86);
+    --border: #d8d3c4;
+    --border-strong: #bdb6a3;
+
+    --ink: #1c2326;
+    --ink-2: #5c6a6e;
+    --ink-3: #9aa6a9;
+
+    --accent: #0e8c82;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(14, 140, 130, 0.1);
+    --accent-line: rgba(14, 140, 130, 0.4);
+
+    --amber: #b26f1d;
+    --amber-ink: #ffffff;
+    --amber-soft: rgba(178, 111, 29, 0.1);
+
+    --done: #9aa6a9;
+    --done-soft: rgba(154, 166, 169, 0.14);
+
+    --shadow-ambient: 0 1px 0 rgba(28, 35, 38, 0.06), 0 10px 26px -20px rgba(28, 35, 38, 0.45);
+
+    color-scheme: light;
+  }
+}
+
+/* ...and by the explicit toggle after it does. [data-theme] always wins. */
+:root[data-theme='light'] {
+  --field-deep: #e9e6dd;
+  --field: #f4f2ec;
+  --panel: #ffffff;
+  --panel-glass: rgba(255, 255, 255, 0.86);
+  --border: #d8d3c4;
+  --border-strong: #bdb6a3;
+
+  --ink: #1c2326;
+  --ink-2: #5c6a6e;
+  --ink-3: #9aa6a9;
+
+  --accent: #0e8c82;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(14, 140, 130, 0.1);
+  --accent-line: rgba(14, 140, 130, 0.4);
+
+  --amber: #b26f1d;
+  --amber-ink: #ffffff;
+  --amber-soft: rgba(178, 111, 29, 0.1);
+
+  --done: #9aa6a9;
+  --done-soft: rgba(154, 166, 169, 0.14);
+
+  --shadow-ambient: 0 1px 0 rgba(28, 35, 38, 0.06), 0 10px 26px -20px rgba(28, 35, 38, 0.45);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* ============================================================ base ======= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--field-deep);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* thin, palette-matched scrollbars — default chrome is a template tell */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ======================================================= components ====== */
+
+/* Plate header (Signalis): inverted filled bar, background-colour text, mono,
+   uppercase, letterspaced. Every section starts with one. */
+.plate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  padding: 5px 9px;
+  background: var(--ink);
+  color: var(--panel);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plate--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.plate--amber {
+  background: var(--amber);
+  color: var(--amber-ink);
+}
+
+.plate--quiet {
+  background: var(--border);
+  color: var(--ink-2);
+}
+
+/* Glass panel: translucent over the map, opaque plate header, hairline border,
+   6px radius, no shadow deeper than a hairline + subtle ambient. */
+.panel {
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.glass {
+  background: var(--panel-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(14px) saturate(115%);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-ambient);
+  overflow: hidden;
+}
+
+/* Stop ticket (BotW neutral shelf): identical geometry for every stop.
+   Status = left border weight + fill tint + a small mono chip. Never resize,
+   never re-colour the whole card. */
+.ticket {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px 9px 12px;
+  border: none;
+  border-left: 2px solid var(--border-strong);
+  border-bottom: var(--hairline) solid var(--border);
+  background: transparent;
+  color: inherit;
+  transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+
+.ticket:last-child {
+  border-bottom: none;
+}
+
+.ticket:hover {
+  background: var(--done-soft);
+}
+
+.ticket--pending {
+  border-left-color: var(--border-strong);
+}
+
+.ticket--active {
+  border-left-color: var(--accent);
+  border-left-width: 3px;
+  background: var(--accent-soft);
+}
+
+.ticket--exception {
+  border-left-color: var(--amber);
+  border-left-width: 3px;
+  background: var(--amber-soft);
+}
+
+.ticket--done {
+  border-left-color: var(--done);
+  color: var(--ink-2);
+}
+
+.ticket--selected {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+/* Mono chip: every identifier, count and status token. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.chip--accent {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+.chip--amber {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.chip--solid {
+  background: var(--ink);
+  color: var(--panel);
+  border-color: var(--ink);
+}
+
+.chip--quiet {
+  color: var(--ink-3);
+  border-color: var(--border);
+}
+
+/* The ONE display numeral a panel is allowed. Mono, tabular, never mid-size. */
+.numeral {
+  font-family: var(--font-mono);
+  font-size: var(--type-display);
+  font-weight: 500;
+  line-height: var(--lh-display);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.numeral--sm {
+  font-size: var(--type-display-sm);
+}
+
+.numeral--accent {
+  color: var(--accent);
+}
+
+.numeral--amber {
+  color: var(--amber);
+}
+
+/* Micro rows — 11–13px only. No middle sizes. */
+.micro {
+  font-size: var(--type-micro);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.micro--mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.micro--dim {
+  color: var(--ink-3);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.rule {
+  height: var(--hairline);
+  background: var(--border);
+  border: none;
+  margin: 0;
+}
+
+/* Buttons: flat, bordered, no gradients ever. One primary per screen state. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-2);
+  padding: 8px 12px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent-line);
+}
+
+.btn:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.btn--amber {
+  background: transparent;
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* Driver app: 56px min height, thumb-reach cluster. */
+.btn--driver {
+  width: 100%;
+  min-height: 56px;
+  font-size: var(--type-body);
+  letter-spacing: 0.16em;
+  border-radius: var(--radius);
+}
+
+/* Selected-driver pulse. DESIGN: the accent pulses ONLY on the current selection. */
+@keyframes manifest-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pulse {
+  animation: manifest-pulse 2.2s var(--ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+  * {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ============================================================== map ====== */
+
+.map-root {
+  position: absolute;
+  inset: 0;
+}
+
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
+/* Attribution is required by OSM/OpenMapTiles — keep it, dress it. */
+.maplibregl-ctrl-attrib {
+  background: var(--panel-glass) !important;
+  color: var(--ink-3) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm) 0 0 0;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--ink-2) !important;
+}
+
+.maplibregl-ctrl-bottom-right {
+  z-index: 2;
+}
+
+/* ============================================================ print ====== */
+
+@media print {
+  :root {
+    --panel: #ffffff;
+    --field: #ffffff;
+    --field-deep: #ffffff;
+    --ink: #000000;
+    --ink-2: #333333;
+    --ink-3: #666666;
+    --border: #bbbbbb;
+    --border-strong: #888888;
+    --accent: #000000;
+    --accent-ink: #ffffff;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

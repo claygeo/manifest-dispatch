@@ -1,0 +1,369 @@
+/* =========================================================================
+   Printable delivery manifest `/manifest/:runId` — the compliance surface.
+
+   This is a DOCUMENT, not a dashboard: mono throughout, ruled field blocks
+   instead of cards, plate headers opening every section, signature lines that
+   a human actually signs. It has to survive a printer, so the print block
+   below never relies on background printing being enabled — plates become
+   ruled headers rather than white-on-white ghosts when a browser drops
+   background graphics.
+   ========================================================================= */
+
+.mf-root {
+  min-height: 100%;
+  background: var(--field);
+  padding: 18px 16px 56px;
+}
+
+/* ---- toolbar (screen only) ---- */
+
+.mf-bar {
+  max-width: 880px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mf-bar-end {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- the sheet ---- */
+
+.mf-sheet {
+  max-width: 880px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-ambient);
+  font-family: var(--font-mono);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.mf-masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 18px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.mf-org {
+  font-size: var(--type-body);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.mf-org-line {
+  margin-top: 3px;
+}
+
+.mf-metric {
+  text-align: right;
+  flex: none;
+}
+
+/* ---- ruled field block: a form, not a card grid ---- */
+
+.mf-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mf-field {
+  padding: 9px 12px;
+  border-right: var(--hairline) solid var(--border);
+  border-bottom: var(--hairline) solid var(--border);
+  min-width: 0;
+}
+
+.mf-field:nth-child(3n) {
+  border-right: none;
+}
+
+.mf-value {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.mf-value--dim {
+  color: var(--ink-2);
+}
+
+.mf-value--amber {
+  color: var(--amber);
+}
+
+/* ---- tables ---- */
+
+.mf-scroll {
+  overflow-x: auto;
+}
+
+.mf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mf-table th {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: var(--hairline) solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.mf-table td {
+  padding: 6px 10px;
+  border-bottom: var(--hairline) solid var(--border);
+  vertical-align: top;
+  color: var(--ink);
+}
+
+.mf-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mf-nowrap {
+  white-space: nowrap;
+}
+
+.mf-items td {
+  padding: 0 10px 7px;
+  border-bottom: var(--hairline) solid var(--border);
+  font-size: 10px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.mf-stop td {
+  border-bottom: none;
+}
+
+.mf-flag {
+  color: var(--amber);
+}
+
+.mf-totals td {
+  border-bottom: none;
+  border-top: var(--hairline) solid var(--border-strong);
+  padding-top: 8px;
+  padding-bottom: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- custody: ruled signature cell inside the row ---- */
+
+.mf-sign-cell {
+  width: 30%;
+  min-width: 150px;
+}
+
+.mf-sign-rule {
+  height: 18px;
+  border-bottom: var(--hairline) solid var(--border-strong);
+}
+
+/* ---- signature block ---- */
+
+.mf-sigs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 28px;
+  padding: 18px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.mf-sig-rule {
+  height: 34px;
+  border-bottom: var(--hairline) solid var(--border-strong);
+}
+
+.mf-sig-label {
+  padding-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---- notes + footer ---- */
+
+.mf-notes {
+  margin: 0;
+  padding: 12px 18px 14px 34px;
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--ink-2);
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.mf-notes li {
+  padding-left: 4px;
+}
+
+.mf-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 11px 18px 13px;
+}
+
+/* ---- unknown run ---- */
+
+.mf-miss {
+  max-width: 520px;
+  margin: 8vh auto 0;
+}
+
+.mf-miss-body {
+  padding: 14px;
+}
+
+.mf-runs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 14px 14px;
+}
+
+.mf-run-link {
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.mf-run-link:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+@media (max-width: 720px) {
+  .mf-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mf-field:nth-child(3n) {
+    border-right: var(--hairline) solid var(--border);
+  }
+  .mf-field:nth-child(2n) {
+    border-right: none;
+  }
+  .mf-sigs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================== print ==== */
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.5in;
+  }
+
+  .mf-root {
+    padding: 0;
+    background: #ffffff;
+  }
+
+  /* Scoped overrides beat :root regardless of stylesheet order. */
+  .mf-sheet {
+    --panel: #ffffff;
+    --ink: #000000;
+    --ink-2: #333333;
+    --ink-3: #555555;
+    --border: #c4c4c4;
+    --border-strong: #7a7a7a;
+    --amber: #000000;
+    --accent: #000000;
+
+    max-width: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* A plate is an inverted bar on screen. On paper, background graphics are
+     often disabled — so it becomes a ruled header instead of vanishing. */
+  .mf-sheet .plate {
+    background: transparent;
+    color: #000000;
+    border-top: 2px solid #000000;
+    border-bottom: 1px solid #000000;
+    padding: 5px 0;
+  }
+
+  .mf-masthead,
+  .mf-grid .mf-field,
+  .mf-sigs,
+  .mf-notes,
+  .mf-foot {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .mf-field {
+    padding-right: 12px;
+  }
+
+  .mf-table th:first-child,
+  .mf-table td:first-child {
+    padding-left: 0;
+  }
+
+  .mf-table th:last-child,
+  .mf-table td:last-child {
+    padding-right: 0;
+  }
+
+  .mf-scroll {
+    overflow-x: visible;
+  }
+
+  .mf-table thead {
+    display: table-header-group;
+  }
+
+  .mf-table tr,
+  .mf-sig,
+  .mf-field,
+  .mf-notes li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .mf-sheet .chip {
+    border-color: #000000;
+    color: #000000;
+    background: transparent;
+  }
+
+  .mf-flag,
+  .mf-value--amber {
+    color: #000000;
+    font-weight: 600;
+  }
+}

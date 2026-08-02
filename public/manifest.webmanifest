@@ -1,0 +1,26 @@
+{
+  "name": "Manifest — delivery dispatch",
+  "short_name": "Manifest",
+  "description": "Last-mile delivery dispatch for dispensaries. Demo uses fictional data.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0D1214",
+  "theme_color": "#0D1214",
+  "categories": ["business", "productivity", "navigation"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

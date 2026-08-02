@@ -1,0 +1,270 @@
+/* =========================================================================
+   Customer tracking `/t/:orderCode` — one card + the map.
+
+   Register: the same instrument the dispatcher uses, stripped to the single
+   thing a customer needs. No account, no nav, no marketing chrome. The map is
+   still the page; the card floats over it (docked bottom on a phone, left
+   column on a desktop) exactly like a console panel.
+
+   Every value here resolves to a token in theme.css. Nothing new carries
+   chroma: accent = the live delivery, amber = an exception the customer has
+   to act on, and that is the whole palette.
+   ========================================================================= */
+
+.tk-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--field);
+}
+
+/* ---- honesty rail: wordmark + DEMO FLEET, always visible, never a nav ---- */
+
+.tk-rail {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.tk-rail > * {
+  pointer-events: auto;
+}
+
+.tk-rail-end {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- the one card ---- */
+
+.tk-card {
+  position: absolute;
+  z-index: 3;
+  left: 20px;
+  top: 76px;
+  width: 396px;
+  max-height: calc(100% - 96px);
+  display: flex;
+  flex-direction: column;
+}
+
+.tk-scroll {
+  flex: 1 1 auto;
+  min-height: 0; /* let the flex child scroll instead of overflowing the card */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tk-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+/* ---- headline: the ONE display numeral this surface is allowed ---- */
+
+.tk-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tk-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.tk-numeral-done {
+  color: var(--ink-2);
+}
+
+/* ETA drift, inline, no red/green badge (DESIGN.md) */
+.tk-drift {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-top: 5px;
+}
+
+/* ---- status ladder: a segmented rail, not a stepper with bubbles ---- */
+
+.tk-ladder {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.tk-step {
+  border-top: 2px solid var(--border-strong);
+  padding-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  transition:
+    color var(--t-base) var(--ease),
+    border-color var(--t-base) var(--ease);
+}
+
+.tk-step--done {
+  border-top-color: var(--accent);
+  color: var(--ink-2);
+}
+
+.tk-step--now {
+  border-top-color: var(--accent);
+  color: var(--accent);
+}
+
+.tk-step--flag {
+  border-top-color: var(--amber);
+  color: var(--amber);
+}
+
+/* A closed order dims to field values — DESIGN.md: never green-celebrate. */
+.tk-ladder--closed .tk-step {
+  border-top-color: var(--done);
+  color: var(--ink-3);
+}
+
+/* ---- amber is only ever an exception the customer must act on ---- */
+
+.tk-note {
+  padding: 8px 10px;
+  border: var(--hairline) solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-sm);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* ---- order summary: receipt register, dotted leaders ---- */
+
+.tk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tk-address {
+  font-size: var(--type-body);
+  color: var(--ink);
+}
+
+.tk-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tk-row-name {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.tk-leader {
+  flex: 1 1 12px;
+  min-width: 12px;
+  align-self: center;
+  border-bottom: var(--hairline) dotted var(--border-strong);
+  opacity: 0.7;
+}
+
+.tk-qty {
+  flex: none;
+}
+
+.tk-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: var(--hairline) solid var(--border);
+}
+
+.tk-total-value {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.tk-fine {
+  padding: 0 14px 12px;
+}
+
+/* ---- unknown order code: still a designed surface ---- */
+
+.tk-miss {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.tk-miss-card {
+  width: min(440px, 100%);
+}
+
+.tk-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 14px 14px;
+}
+
+.tk-code {
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.tk-code:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+/* ---- phone: the card docks to the bottom, the map keeps the top ---- */
+
+@media (max-width: 760px) {
+  .tk-card {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 12px;
+    width: auto;
+    max-height: 68%;
+  }
+}
+
+@media (max-width: 400px) {
+  .tk-rail {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+}

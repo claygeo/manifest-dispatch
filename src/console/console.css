@@ -1,0 +1,550 @@
+/* =========================================================================
+   Dispatch console — layout + console-only components.
+
+   Everything here composes on the shared vocabulary in theme.css
+   (.plate / .glass / .ticket / .chip / .numeral / .micro / .btn / .label).
+   Nothing in this file introduces a new colour: every value is a token.
+
+   Rules being honoured (DESIGN.md):
+     - the map IS the page; every control floats over it as a BOXED panel
+     - one display-size numeral per panel, everything else 10.5–13px micro
+     - amber only where a dispatcher must act
+     - 150ms ease-out on panel state changes, nothing longer than 250ms
+   ========================================================================= */
+
+.dc-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+
+  /* driven from ConsolePage so the map padding and the CSS agree */
+  --dc-rail-w: 344px;
+  --dc-feed-w: 312px;
+  --dc-edge: 14px;
+  --dc-top: 62px;
+}
+
+/* ------------------------------------------------------------- top bar --- */
+
+.dc-topbar {
+  position: absolute;
+  top: var(--dc-edge);
+  left: var(--dc-edge);
+  right: var(--dc-edge);
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gap-3);
+  pointer-events: none;
+}
+
+.dc-topbar > * {
+  pointer-events: auto;
+}
+
+/* A boxed strip so chips never float unboxed over the map. */
+.dc-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  min-width: 0;
+}
+
+.dc-strip--tools {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------------------------------------------------------- left rail ---- */
+
+.dc-rail {
+  position: absolute;
+  left: var(--dc-edge);
+  top: var(--dc-top);
+  bottom: var(--dc-edge);
+  width: var(--dc-rail-w);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 3px;
+  scrollbar-gutter: stable;
+}
+
+.dc-run {
+  flex: 0 0 auto;
+  transition: box-shadow var(--t-base) var(--ease);
+}
+
+.dc-run--selected {
+  box-shadow: var(--shadow-ambient), 0 0 0 1px var(--accent-line);
+}
+
+.dc-run--complete .dc-run__body,
+.dc-run--complete .dc-run__foot {
+  color: var(--ink-3);
+}
+
+/* the plate's title doubles as the run's select target */
+.dc-plate-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.92;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.dc-plate-title:hover {
+  opacity: 1;
+}
+
+.dc-run__body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gap-3);
+  padding: 10px 11px 9px;
+}
+
+.dc-run__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dc-run__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* the ONE display numeral this panel is allowed */
+.dc-run__eta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.dc-run__eta .numeral {
+  font-variant-numeric: tabular-nums;
+  transition: color var(--t-base) var(--ease);
+}
+
+.dc-numeral--idle {
+  color: var(--ink-3);
+}
+
+.dc-run__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  padding: 9px 11px 11px;
+  border-top: var(--hairline) solid var(--border);
+}
+
+.dc-link {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.dc-link:hover {
+  color: var(--accent);
+}
+
+.dc-stoplist {
+  border-top: var(--hairline) solid var(--border);
+}
+
+/* ------------------------------------------------------------ tickets --- */
+
+/* .ticket in theme.css is authored for a <button>; the console needs a
+   container (reorder controls + an actions strip cannot nest inside a
+   button), so the geometry moves to the wrapper and the hit area is a
+   transparent full-width button inside it. Geometry stays identical for
+   every ticket — status is still only border weight + fill tint + chip. */
+.dc-ticket {
+  position: relative;
+  padding: 9px 11px 9px 12px;
+}
+
+.dc-ticket--reorder {
+  padding-right: 32px;
+}
+
+.dc-ticket__hit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.dc-tk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+}
+
+.dc-tk-name {
+  margin-top: 4px;
+  font-size: var(--type-body);
+  line-height: 1.3;
+}
+
+.dc-tk-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  margin-top: 3px;
+}
+
+.dc-tk-tools {
+  position: absolute;
+  top: 8px;
+  right: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dc-nudge {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 15px;
+  border: var(--hairline) solid var(--border);
+  border-radius: 2px;
+  color: var(--ink-2);
+  background: var(--panel);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.dc-nudge:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+.dc-nudge:disabled {
+  color: var(--ink-3);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Actions strip — only on the selected, still-open ticket. */
+.dc-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: var(--hairline) dashed var(--border);
+}
+
+.btn.dc-btn-xs {
+  padding: 3px 7px;
+  letter-spacing: 0.1em;
+}
+
+/* ---------------------------------------------------------- event feed -- */
+
+.dc-feed {
+  position: absolute;
+  right: var(--dc-edge);
+  top: var(--dc-top);
+  bottom: var(--dc-edge);
+  width: var(--dc-feed-w);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  transition: width var(--t-slow) var(--ease);
+}
+
+.dc-feed--collapsed {
+  width: 34px;
+  bottom: auto;
+  max-height: min(300px, calc(100% - var(--dc-top) - var(--dc-edge)));
+}
+
+.dc-feed__plate {
+  flex: 0 0 auto;
+}
+
+.dc-feed__scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  padding: 6px 9px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.dc-feed__scope .chip {
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.dc-feed__scope .chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dc-feed__scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px 0 10px;
+}
+
+.dc-feed__empty {
+  padding: 14px 12px;
+}
+
+/* collapsed: a labelled equipment spine, still boxed */
+.dc-feed__spine {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 0;
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.dc-feed__spine:hover {
+  color: var(--accent);
+}
+
+.dc-plate-btn {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  opacity: 0.78;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.dc-plate-btn:hover {
+  opacity: 1;
+}
+
+/* transcript row: mono stamp gutter, hairline spine, tick per event */
+.dc-ev {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: var(--gap-2);
+  padding: 4px 11px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.dc-ev:hover {
+  background: var(--done-soft);
+}
+
+.dc-ev__time {
+  padding-top: 1px;
+  white-space: nowrap;
+}
+
+.dc-ev__body {
+  position: relative;
+  min-width: 0;
+  padding-left: 11px;
+  border-left: var(--hairline) solid var(--border);
+}
+
+.dc-ev__body::before {
+  content: '';
+  position: absolute;
+  left: -3.5px;
+  top: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: var(--hairline) solid var(--ink-3);
+}
+
+.dc-ev--accent .dc-ev__body::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.dc-ev--amber .dc-ev__body::before {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+.dc-ev__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dc-ev__type {
+  color: var(--ink);
+}
+
+.dc-ev--amber .dc-ev__type {
+  color: var(--amber);
+}
+
+.dc-ev__detail,
+.dc-trunc {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- modal -- */
+
+.dc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--gap-4);
+  background: rgba(4, 9, 10, 0.52);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+:root[data-theme='light'] .dc-backdrop {
+  background: rgba(28, 35, 38, 0.34);
+}
+
+.dc-modal {
+  width: min(460px, 100%);
+  background: var(--panel);
+}
+
+.dc-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-3);
+  padding: var(--gap-4);
+}
+
+/* The code IS this panel's display element — its one big numeral. It carries 16
+   characters (see console/liveSession.ts on why), so the tracking is tight and
+   the size falls back on narrow viewports rather than overflowing the field.
+   The console is a desktop surface: at any width that fits the rails, this is
+   the full 28px display size. */
+.dc-code-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--field);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: min(var(--type-display-sm), 6.2vw);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.dc-code-input::placeholder {
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+
+.dc-modal__row {
+  display: flex;
+  gap: var(--gap-2);
+}
+
+.dc-modal__row .btn {
+  flex: 1 1 0;
+}
+
+.dc-joinlink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  padding: 7px 9px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+.dc-joinlink span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------- responsive -- */
+
+/* Tablet landscape: tighten the rails, keep both panels. */
+@media (max-width: 1180px) {
+  .dc-root {
+    --dc-rail-w: 306px;
+    --dc-feed-w: 272px;
+    --dc-edge: 10px;
+    --dc-top: 58px;
+  }
+}
+
+/* Tablet portrait: the feed collapses to its spine, the rail stays usable. */
+@media (max-width: 900px) {
+  .dc-root {
+    --dc-rail-w: 288px;
+    --dc-feed-w: 240px;
+  }
+
+  .dc-topbar {
+    gap: var(--gap-2);
+  }
+}
+
+@media (max-width: 720px) {
+  .dc-root {
+    --dc-rail-w: min(300px, calc(100vw - 68px));
+    /* the top strips are allowed to wrap here — give the rails the clearance */
+    --dc-top: 92px;
+  }
+
+  .dc-strip .dc-hide-sm {
+    display: none;
+  }
+}
