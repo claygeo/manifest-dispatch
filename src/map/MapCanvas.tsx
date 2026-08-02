@@ -731,26 +731,38 @@ export function MapCanvas({
       }
       const bb = boundsOf(pts)
       if (!bb) return
-      done = true
-      map.fitBounds(
+      // The panel padding is already on the transform (setPadding effect), so
+      // only a small margin here — and verify the camera math actually
+      // succeeded: cameraForBounds returns undefined when padding exceeds the
+      // (possibly not-yet-laid-out) canvas, and fitBounds would no-op silently.
+      const cam = map.cameraForBounds(
         [
           [bb[0], bb[1]],
           [bb[2], bb[3]],
         ],
-        {
-          padding: {
-            top: padding?.top ?? 64,
-            right: padding?.right ?? 64,
-            bottom: padding?.bottom ?? 64,
-            left: padding?.left ?? 64,
-          },
-          duration: 0,
-          maxZoom: 14,
-        },
+        { padding: 24, maxZoom: 14 },
       )
+      if (!cam) return
+      done = true
+      map.jumpTo(cam)
     }
-    if (map.isStyleLoaded()) fit()
-    else map.once('style.load', fit)
+    /**
+     * Two failure modes while layout settles: a zero-size canvas clamps the
+     * constructor zoom to minZoom, and camera math no-ops against a canvas
+     * smaller than its padding. Retry on render frames until the fit lands.
+     */
+    let attempts = 0
+    const fitWhenSized = () => {
+      if (done || attempts++ > 240) return
+      const c = map.getCanvas()
+      if (c.width >= 200 && c.height >= 200) {
+        map.resize()
+        fit()
+      }
+      if (!done) map.once('render', fitWhenSized)
+    }
+    if (map.isStyleLoaded()) fitWhenSized()
+    else map.once('style.load', fitWhenSized)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFit])
 
