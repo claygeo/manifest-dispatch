@@ -41,6 +41,13 @@ import {
   TEST_COUNTS,
 } from './proof'
 import {
+  MECHANISM_HANDOFF,
+  MECHANISM_RECORD,
+  MECHANISM_SENTENCES,
+  MECHANISM_STAGES,
+  PLAN_TEASER,
+} from './mechanism'
+import {
   ConsoleEmbed,
   DriverIdEmbed,
   DriverPaymentEmbed,
@@ -61,6 +68,11 @@ const PAGE_TITLE = 'Manifest — delivery dispatch'
 const NARROW_QUERY = '(max-width: 760px)'
 
 const TENDERS: PaymentMethod[] = ['cash', 'debit', 'digital']
+
+/* Summed from the published rows rather than typed out beside them, so the
+   headline and the table can never disagree after a re-run. */
+const pingsSent = BROADCAST_TIERS.reduce((n, t) => n + t.sent, 0)
+const pingsReceived = BROADCAST_TIERS.reduce((n, t) => n + t.received, 0)
 
 /* --------------------------------------------------------------- hooks --- */
 
@@ -229,6 +241,39 @@ function ProofTable() {
         {`${BROADCAST_RUN.command} · ${BROADCAST_RUN.windowSeconds}s per tier at ${BROADCAST_RUN.rateHz} Hz · ${BROADCAST_RUN.runtime}`}
       </p>
     </div>
+  )
+}
+
+/**
+ * The mechanism strip: POS -> Manifest -> driver / customer / manifest.
+ *
+ * Pure HTML and CSS. No SVG, no icon set, no illustration — the shape is three
+ * bordered stages in a row with a connector between them, and the middle one is
+ * the only one wearing the accent, which is the entire positioning argument
+ * drawn rather than argued. The connectors are decorative and marked as such;
+ * the list markup underneath is what a screen reader reads.
+ */
+function MechanismStrip() {
+  return (
+    <ol className="st-flow" aria-label="How an order moves through Manifest">
+      {MECHANISM_STAGES.map((stage, i) => (
+        <li
+          className={`st-flow__stage${stage.owned ? ' st-flow__stage--ours' : ''}`}
+          key={stage.id}
+        >
+          {i > 0 ? <span className="st-flow__link" aria-hidden="true" /> : null}
+          <div className="st-flow__card">
+            <p className="st-flow__kicker">{stage.kicker}</p>
+            <p className="st-flow__title">{stage.title}</p>
+            <ul className="st-flow__lines">
+              {stage.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -526,8 +571,59 @@ export function StoryPage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------------------ proof */}
+      {/* ----------------------------------------------------- how it works */}
+      {/* SPEC addendum: the plain-language mechanism section, deliberately
+          placed after the compliance document and before the numbers. By here
+          the reader has seen the whole lifecycle and is entitled to ask what
+          Manifest actually is; the numbers only mean something once they know. */}
       <section className="st-section">
+        <div className="st-wrap">
+          <Reveal>
+            <SectionHead
+              step="How it works"
+              title="One layer, between the counter and the door."
+              lede="Manifest is not a point of sale, a payments company or a compliance consultancy. It is the layer that owns a delivery from the moment the bag is sealed to the moment it is handed over at the door, and it runs on top of the system you already bought."
+            />
+          </Reveal>
+
+          <Reveal delayMs={60}>
+            <MechanismStrip />
+          </Reveal>
+
+          <div className="st-mech">
+            <Reveal delayMs={90}>
+              <div className="st-mech__block">
+                <p className="st-mech__label">{MECHANISM_HANDOFF.label}</p>
+                <p className="st-note">{MECHANISM_HANDOFF.body}</p>
+                <p className="st-note st-note--dim">{MECHANISM_HANDOFF.caveat}</p>
+              </div>
+            </Reveal>
+            <Reveal delayMs={120}>
+              <div className="st-mech__block">
+                <p className="st-mech__label">{MECHANISM_RECORD.label}</p>
+                <p className="st-note">{MECHANISM_RECORD.body}</p>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* The takeaway, stated as sentences rather than as bullets, because
+              the job of this block is to be repeated out loud by somebody who
+              will not have the page open. */}
+          <Reveal delayMs={150}>
+            <div className="st-repeat">
+              <p className="st-repeat__head">Three sentences you can repeat in a meeting</p>
+              <ol className="st-repeat__list">
+                {MECHANISM_SENTENCES.map((line) => (
+                  <li key={line.slice(0, 28)}>{line}</li>
+                ))}
+              </ol>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ proof */}
+      <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
             <SectionHead
@@ -544,7 +640,7 @@ export function StoryPage() {
               <div className="st-stat">
                 <span className="numeral numeral--sm">0%</span>
                 <span className="st-stat__label">
-                  Message loss at every tier. 2,103 pings sent, 2,103 received.
+                  {`Message loss at every tier. ${pingsSent.toLocaleString()} pings sent, ${pingsReceived.toLocaleString()} received.`}
                 </span>
               </div>
               <div className="st-stat">
@@ -570,6 +666,29 @@ export function StoryPage() {
                   <li key={line.slice(0, 24)}>{line}</li>
                 ))}
               </ul>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------ plan teaser */}
+      {/* The only section on the page that asks the reader to do something.
+          It sits here on purpose: after the argument is finished and before the
+          directory of links, so the invitation is the last thing said rather
+          than an interruption in the middle of the lifecycle. */}
+      <section className="st-section">
+        <div className="st-wrap">
+          <Reveal>
+            <div className="st-teaser">
+              <div className="st-teaser__copy">
+                <p className="st-eyebrow">{PLAN_TEASER.step}</p>
+                <h2 className="st-title st-title--sm">{PLAN_TEASER.title}</h2>
+                <p className="st-lede">{PLAN_TEASER.lede}</p>
+                <p className="st-note st-teaser__rule">{PLAN_TEASER.philosophy}</p>
+              </div>
+              <Link className="btn btn--primary st-teaser__cta" to={PLAN_TEASER.path}>
+                {PLAN_TEASER.cta}
+              </Link>
             </div>
           </Reveal>
         </div>
@@ -613,6 +732,14 @@ export function StoryPage() {
                 <span className="st-link__path">{`/manifest/${runId}`}</span>
                 <span className="st-link__note">
                   The compliance document for the run that is out right now.
+                </span>
+              </Link>
+              <Link className="st-link" to={PLAN_TEASER.path}>
+                <span className="st-link__title">Route planner</span>
+                <span className="st-link__path">{PLAN_TEASER.path}</span>
+                <span className="st-link__note">
+                  Build a run out of the pending pool, argue with the suggested order, and
+                  dispatch it into the fleet you have been watching.
                 </span>
               </Link>
             </nav>

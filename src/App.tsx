@@ -10,7 +10,7 @@
  * to `/dispatch` when the story took the front door.
  */
 
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { createSimEngine, type SimEngine } from './sim/engine'
 import StoryPage from './story/StoryPage'
@@ -18,6 +18,18 @@ import ConsolePage from './console/ConsolePage'
 import DriverPage from './driver/DriverPage'
 import TrackingPage from './tracking/TrackingPage'
 import ManifestPage from './manifest/ManifestPage'
+
+/**
+ * `/plan` is the one lazily-loaded surface.
+ *
+ * Not for tidiness — for weight. The route planner reads `data/matrix.json`,
+ * the full directed leg matrix, which is 783 kB of road geometry. Statically
+ * importing it would put all of that on the critical path of the story page,
+ * where SPEC.md's definition of done asks for first paint under three seconds.
+ * As a lazy route it becomes its own chunk that only a visitor who opens the
+ * planner ever downloads.
+ */
+const PlanPage = lazy(() => import('./plan/PlanPage'))
 
 function useSimEngine(): void {
   const ref = useRef<SimEngine | null>(null)
@@ -37,6 +49,14 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/dispatch" element={<ConsolePage />} />
+        <Route
+          path="/plan"
+          element={
+            <Suspense fallback={<div className="app-loading">Loading the planner…</div>}>
+              <PlanPage />
+            </Suspense>
+          }
+        />
         <Route path="/driver" element={<DriverPage />} />
         <Route path="/t/:orderCode" element={<TrackingPage />} />
         <Route path="/manifest/:runId" element={<ManifestPage />} />

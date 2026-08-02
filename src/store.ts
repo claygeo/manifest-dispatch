@@ -104,6 +104,7 @@ export interface ManifestState {
   /* ---- fleet lifecycle ---- */
   hydrateFleet: (fleet: Fleet, generation: number) => void
   resetFleet: () => void
+  addRun: (run: Run, stops: Stop[]) => void
 
   /* ---- run mutations ---- */
   startRun: (runId: string) => void
@@ -208,6 +209,31 @@ export const useStore = create<ManifestState>((set, get) => ({
     const fleet = buildFleet(generation, get().simNowMs || Date.now())
     get().hydrateFleet(fleet, generation)
   },
+
+  /**
+   * Put one more run on the board without disturbing the ones already driving.
+   *
+   * The `/plan` sandbox is the only caller: a visitor builds a sequence, hits
+   * dispatch, and the result has to become a REAL run — same store, same
+   * actions, same sim engine, same console. Additive on purpose. It never
+   * touches `generation` (that number means "the fleet was re-seeded", and the
+   * engine tears its whole simulation state down when it changes), and it
+   * refuses an id that already exists rather than overwriting a live run.
+   *
+   * The run's legs must be registered with `registerRunLegs` BEFORE this lands,
+   * or the engine will adopt a run with nowhere to drive.
+   */
+  addRun: (run, stops) =>
+    set((s) => {
+      if (s.runs[run.id]) return {}
+      const nextStops = { ...s.stops }
+      for (const stop of stops) nextStops[stop.id] = stop
+      return {
+        runs: { ...s.runs, [run.id]: run },
+        runOrder: [...s.runOrder, run.id],
+        stops: nextStops,
+      }
+    }),
 
   /* ------------------------------------------------------------- runs --- */
 

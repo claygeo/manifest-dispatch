@@ -1,0 +1,395 @@
+/* =========================================================================
+   Route planning sandbox — layout only. Every value is a theme.css token;
+   this file introduces no new colour and no third radius.
+
+   DESIGN.md v2 rules being honoured:
+     - the map IS the page; the planner floats over it as one boxed glass panel
+     - dual radius: the panel is soft (14px), the order rows and nudges inside
+       it are tight (8px) — friendliness is a surface, not a density
+     - ONE display-size numeral, and only on the dispatched-run watch state
+     - sentence case throughout; mono only on order codes and manifest ids
+     - amber only where the dispatcher is being told something actionable
+       (here: your order costs more than the suggested one, and a refused
+       insertion) — never as decoration
+     - mobile-first: the rail is a bottom sheet at 390px and a left rail at
+       1440px, and the comparison chip is pinned in both
+   ========================================================================= */
+
+.pl-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+
+  --pl-edge: 10px;
+  --pl-rail-w: 380px;
+}
+
+/* -------------------------------------------------------------- top bar --- */
+
+.pl-topbar {
+  position: absolute;
+  top: var(--pl-edge);
+  left: var(--pl-edge);
+  right: var(--pl-edge);
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gap-2);
+  pointer-events: none;
+}
+
+.pl-topbar > * {
+  pointer-events: auto;
+}
+
+.pl-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  min-width: 0;
+}
+
+.pl-strip--tools {
+  justify-content: flex-end;
+}
+
+/* ----------------------------------------------------------------- rail --- */
+
+/* Phone first: the planner is a bottom sheet, the map keeps the top half. */
+.pl-rail {
+  position: absolute;
+  left: var(--pl-edge);
+  right: var(--pl-edge);
+  bottom: calc(var(--pl-edge) + 132px);
+  top: 34vh;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-3);
+  padding: var(--gap-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pl-section {
+  flex: 0 0 auto;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-tight);
+  overflow: hidden;
+  background: var(--field);
+}
+
+.pl-note {
+  margin: 0;
+  padding: 8px 11px;
+  color: var(--ink-2);
+}
+
+.pl-empty {
+  color: var(--ink-2);
+}
+
+/* ----------------------------------------------------------- order pool --- */
+
+/*
+ * Capped on purpose. Eleven order cards are taller than the rail, and an
+ * uncapped pool pushes "Your run" and the feasibility control off the bottom —
+ * which are the two things this screen exists to show. The picker scrolls
+ * inside itself so the sequence editor is always the next thing you see.
+ */
+.pl-pool {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px;
+  display: grid;
+  gap: 4px;
+  max-height: 24vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pl-order {
+  display: grid;
+  gap: 2px;
+}
+
+.pl-order__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+}
+
+.pl-order__name {
+  font-weight: 600;
+  font-size: var(--type-body);
+  color: var(--ink);
+}
+
+.pl-order__addr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------- the sequence --- */
+
+.pl-seq {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  display: grid;
+  gap: 3px;
+  counter-reset: none;
+}
+
+.pl-seqrow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  padding: 6px 8px;
+  border-radius: var(--radius-tight);
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.pl-seqrow__num {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-seqrow__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pl-seqrow__name {
+  font-size: var(--type-body);
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-nudge {
+  flex: none;
+  display: flex;
+  gap: 3px;
+}
+
+/* Dense control, so tight radius and a small hit area that is still 28px tall. */
+.pl-nudge__btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 28px;
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-tight);
+  background: var(--panel);
+  color: var(--ink-2);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.pl-nudge__btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+/* Disabled, which is the one role DESIGN.md v2 assigns to ink-3. */
+.pl-nudge__btn:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------- feasibility ----- */
+
+.pl-late {
+  display: grid;
+  gap: var(--gap-2);
+  padding: 9px 11px 11px;
+}
+
+.pl-verdict {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: var(--radius-tight);
+  border-left: 3px solid var(--border-strong);
+  background: var(--done-soft);
+}
+
+.pl-verdict--fits {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pl-verdict--no {
+  border-left-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.pl-verdict__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-2);
+}
+
+.pl-verdict__who {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pl-verdict__reason {
+  margin: 0;
+  color: var(--ink);
+}
+
+.pl-verdict button {
+  justify-self: start;
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------- dispatched -- */
+
+.pl-watch__body {
+  display: grid;
+  gap: var(--gap-3);
+  padding: 12px;
+}
+
+.pl-watch__body p {
+  margin: 0;
+}
+
+.pl-watch__stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-2);
+}
+
+.pl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ---------------------------------------------------------- footer bar ---- */
+
+.pl-footer {
+  position: absolute;
+  left: var(--pl-edge);
+  right: var(--pl-edge);
+  bottom: var(--pl-edge);
+  z-index: 6;
+  display: grid;
+  gap: var(--gap-2);
+  padding: 10px 12px 11px;
+}
+
+/* SPEC: the human order's total drive time NEXT TO the suggested order's, so
+   local knowledge is measured rather than argued. Persistent, never collapsed. */
+.pl-compare {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gap-2) var(--gap-3);
+}
+
+.pl-compare__pair {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pl-compare__value {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.pl-compare__value--accent {
+  color: var(--accent);
+}
+
+/* A decorative middot between the two figures, aria-hidden in the markup —
+   there is nothing here to read, so ink-3 stays. */
+.pl-compare__sep {
+  color: var(--ink-3);
+}
+
+.pl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pl-actions--foot {
+  justify-content: flex-start;
+}
+
+.pl-foot-note {
+  margin: 0;
+}
+
+.pl-hide-sm {
+  display: none;
+}
+
+/* ------------------------------------------------------------ desktop ----- */
+
+@media (min-width: 900px) {
+  .pl-root {
+    --pl-edge: 14px;
+  }
+
+  .pl-rail {
+    right: auto;
+    width: var(--pl-rail-w);
+    top: 64px;
+    bottom: calc(var(--pl-edge) + 118px);
+  }
+
+  /* the desktop rail is tall enough to show more of the picker */
+  .pl-pool {
+    max-height: 33vh;
+  }
+
+  .pl-footer {
+    right: auto;
+    width: var(--pl-rail-w);
+  }
+
+  .pl-hide-sm {
+    display: inline-flex;
+  }
+
+  .pl-actions--foot {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 1280px) {
+  .pl-root {
+    --pl-rail-w: 404px;
+  }
+}

@@ -28,6 +28,8 @@ const SRC_ROUTES = 'mf-routes'
 const SRC_STOPS = 'mf-stops'
 const SRC_DRIVERS = 'mf-drivers'
 const SRC_DEPOT = 'mf-depot'
+const SRC_PLAN = 'mf-plan'
+const SRC_PLAN_STOPS = 'mf-plan-stops'
 const IMG_ARROW = 'mf-driver-arrow'
 
 const TAMPA_CENTER: LngLat = DEPOT
@@ -38,6 +40,23 @@ export interface MapPadding {
   right?: number
   bottom?: number
   left?: number
+}
+
+/**
+ * A route that does not exist yet.
+ *
+ * The `/plan` sandbox draws a sequence the dispatcher is still editing — there
+ * is no `Run` in the store to render, and there must not be one until they press
+ * dispatch. So it gets its own source and its own layers rather than a fake run:
+ * dashed, so it never reads as a van that is already out there.
+ */
+export interface MapPreview {
+  /** Contiguous polyline for the whole proposed sequence, depot to depot. */
+  coords: LngLat[]
+  /** The proposed stops, in service order. */
+  stops: { id: string; lngLat: LngLat }[]
+  /** Ease the camera to the preview whenever it changes. */
+  fit?: boolean
 }
 
 export interface MapCanvasProps {
@@ -53,6 +72,8 @@ export interface MapCanvasProps {
   interactive?: boolean
   /** Keeps the fleet clear of floating panels. */
   padding?: MapPadding
+  /** A proposed, undispatched sequence to draw over the fleet. */
+  preview?: MapPreview | null
   /** Fired when a stop or driver is clicked. Defaults to store.selectEntity. */
   onSelect?: (selection: Selection | null) => void
   className?: string
@@ -163,6 +184,38 @@ function stopFC(state: ManifestState, runIds: string[], selection: Selection | n
   return { type: 'FeatureCollection', features }
 }
 
+function previewLineFC(preview: MapPreview | null | undefined): FC {
+  if (!preview || preview.coords.length < 2) return emptyFC()
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: preview.coords },
+      },
+    ],
+  }
+}
+
+function previewStopFC(preview: MapPreview | null | undefined): FC {
+  if (!preview) return emptyFC()
+  return {
+    type: 'FeatureCollection',
+    features: preview.stops.map((stop, i) => ({
+      type: 'Feature',
+      properties: { stopId: stop.id, seq: String(i + 1) },
+      geometry: { type: 'Point', coordinates: stop.lngLat },
+    })),
+  }
+}
+
+/** Cheap change-detector so the preview only re-pushes when it actually moves. */
+function previewSig(preview: MapPreview | null | undefined): string {
+  if (!preview) return '-'
+  return `${preview.stops.map((s) => s.id).join(',')}#${preview.coords.length}`
+}
+
 function depotFC(): FC {
   return {
     type: 'FeatureCollection',
@@ -229,6 +282,10 @@ function installOverlays(map: MlMap, theme: Theme): void {
   if (!map.getSource(SRC_STOPS)) map.addSource(SRC_STOPS, { type: 'geojson', data: emptyFC() })
   if (!map.getSource(SRC_DRIVERS)) map.addSource(SRC_DRIVERS, { type: 'geojson', data: emptyFC() })
   if (!map.getSource(SRC_DEPOT)) map.addSource(SRC_DEPOT, { type: 'geojson', data: depotFC() })
+  if (!map.getSource(SRC_PLAN)) map.addSource(SRC_PLAN, { type: 'geojson', data: emptyFC() })
+  if (!map.getSource(SRC_PLAN_STOPS)) {
+    map.addSource(SRC_PLAN_STOPS, { type: 'geojson', data: emptyFC() })
+  }
 
   // ---- routes: travelled dims out, the road ahead carries the accent
   addLayer({
@@ -277,6 +334,59 @@ function installOverlays(map: MlMap, theme: Theme): void {
       ],
       'line-opacity': 0.95,
     },
+  })
+
+  // ---- plan preview: a proposal, not a van. Dashed so it can never be
+  // mistaken for a route someone is already driving.
+  addLayer({
+    id: 'mf-plan-glow',
+    type: 'line',
+    source: SRC_PLAN,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': o.accent,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 10, 7, 16, 14],
+      'line-opacity': 0.14,
+      'line-blur': 6,
+    },
+  })
+
+  addLayer({
+    id: 'mf-plan-line',
+    type: 'line',
+    source: SRC_PLAN,
+    layout: { 'line-cap': 'butt', 'line-join': 'round' },
+    paint: {
+      'line-color': o.accent,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.2, 16, 4.2],
+      'line-opacity': 0.95,
+      'line-dasharray': [2.2, 1.4],
+    },
+  })
+
+  addLayer({
+    id: 'mf-plan-stop',
+    type: 'circle',
+    source: SRC_PLAN_STOPS,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 7, 16, 11],
+      'circle-color': o.accent,
+      'circle-stroke-width': 1.6,
+      'circle-stroke-color': BASEMAP[theme].halo,
+    },
+  })
+
+  addLayer({
+    id: 'mf-plan-seq',
+    type: 'symbol',
+    source: SRC_PLAN_STOPS,
+    layout: {
+      'text-field': ['get', 'seq'],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 10, 9, 16, 12],
+      'text-allow-overlap': true,
+    },
+    paint: { 'text-color': o.driverInk },
   })
 
   // ---- depot
@@ -424,6 +534,7 @@ export function MapCanvas({
   showDepot = true,
   interactive = true,
   padding,
+  preview = null,
   onSelect,
   className,
 }: MapCanvasProps) {
@@ -438,8 +549,16 @@ export function MapCanvas({
   const lastFrameRef = useRef(0)
   const pulseRef = useRef(0)
 
-  const propsRef = useRef({ runIds, showStops, showRoutes, showDepot, onSelect, followRunId })
-  propsRef.current = { runIds, showStops, showRoutes, showDepot, onSelect, followRunId }
+  const propsRef = useRef({
+    runIds,
+    showStops,
+    showRoutes,
+    showDepot,
+    onSelect,
+    followRunId,
+    preview,
+  })
+  propsRef.current = { runIds, showStops, showRoutes, showDepot, onSelect, followRunId, preview }
 
   const theme = useStore((s) => s.theme)
   const selection = useStore((s) => s.selection)
@@ -704,6 +823,7 @@ export function MapCanvas({
         return `${id}:${run.status}:${run.currentLeg}:${Math.round(run.progress * 120)}:${stopSig}:${sel}`
       })
       .join('|')
+      .concat(`||plan:${previewSig(propsRef.current.preview)}`)
 
     if (!force && sig === shapeSigRef.current) return
     shapeSigRef.current = sig
@@ -715,6 +835,11 @@ export function MapCanvas({
     )
     stops?.setData(propsRef.current.showStops ? stopFC(state, ids, state.selection) : emptyFC())
 
+    const planLine = map.getSource(SRC_PLAN) as GeoJSONSource | undefined
+    const planStops = map.getSource(SRC_PLAN_STOPS) as GeoJSONSource | undefined
+    planLine?.setData(previewLineFC(propsRef.current.preview))
+    planStops?.setData(previewStopFC(propsRef.current.preview))
+
     for (const layerId of ['mf-depot', 'mf-depot-label']) {
       if (map.getLayer(layerId)) {
         map.setLayoutProperty(
@@ -725,6 +850,28 @@ export function MapCanvas({
       }
     }
   }
+
+  /* ---- plan preview: push it the moment it changes, not on the next store tick -- */
+  const previewKey = previewSig(preview)
+  useEffect(() => {
+    syncShapes(true)
+    const map = mapRef.current
+    if (!map || !readyRef.current) return
+    if (!preview?.fit || preview.coords.length < 2) return
+    const bb = boundsOf(preview.coords)
+    if (!bb) return
+    const cam = map.cameraForBounds(
+      [
+        [bb[0], bb[1]],
+        [bb[2], bb[3]],
+      ],
+      { padding: 40, maxZoom: 14.5 },
+    )
+    // cameraForBounds returns undefined when the padding exceeds the canvas —
+    // leave the camera where it is rather than jumping somewhere arbitrary.
+    if (cam) map.easeTo({ ...cam, duration: 620 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey])
 
   /* ---- initial fit ---- */
   useEffect(() => {

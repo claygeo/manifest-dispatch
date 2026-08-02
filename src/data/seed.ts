@@ -17,6 +17,7 @@ import type {
   DeliveryEventType,
   PaymentMethod,
   RouteData,
+  RouteLeg,
   Run,
   Stop,
 } from '../types'
@@ -33,8 +34,34 @@ export const RUN_IDS = ROUTES.runs.map((r) => r.id)
 
 const legCache = new Map<string, PreparedLeg[]>()
 
+/**
+ * Legs for runs that are not in routes.json — a run the visitor built in the
+ * `/plan` sandbox, whose geometry comes from the leg matrix instead.
+ *
+ * This is the whole seam. Everything downstream (the sim engine, the map's
+ * travelled/ahead split, the driver's mini-map, ETA maths) asks `legsFor` and
+ * cannot tell where the polyline came from, which is the same rule the store
+ * follows for the sim and live engines.
+ */
+const dynamicLegs = new Map<string, PreparedLeg[]>()
+
+/**
+ * Give a run id its own legs, depot -> stops -> depot, index-aligned with
+ * `Run.stops` plus one closing leg. Overwrites any previous registration.
+ */
+export function registerRunLegs(runId: string, legs: RouteLeg[]): void {
+  dynamicLegs.set(runId, legs.map(prepareLeg))
+  legCache.delete(runId)
+}
+
+export function hasRegisteredLegs(runId: string): boolean {
+  return dynamicLegs.has(runId)
+}
+
 /** Prepared (cumulative-distance) legs for a run. Memoised — parse once. */
 export function legsFor(runId: string): PreparedLeg[] {
+  const registered = dynamicLegs.get(runId)
+  if (registered) return registered
   const cached = legCache.get(runId)
   if (cached) return cached
   const run = ROUTES.runs.find((r) => r.id === runId)

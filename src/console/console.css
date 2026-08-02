@@ -90,7 +90,7 @@
 
 .dc-run--complete .dc-run__body,
 .dc-run--complete .dc-run__foot {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* the plate's title doubles as the run's select target */
@@ -156,7 +156,7 @@
 }
 
 .dc-numeral--idle {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .dc-run__foot {
@@ -264,9 +264,11 @@
   color: var(--accent);
 }
 
+/* Genuinely disabled, so ink-3 is exactly right here — DESIGN.md v2 names it
+   the disabled tone. The 0.45 wash on top of it was compounding, and put the
+   glyph under 1.5:1 on the paper theme. The token alone says disabled. */
 .dc-nudge:disabled {
   color: var(--ink-3);
-  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -324,8 +326,10 @@
   transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
+/* The scope chip carries a word ("All runs"), so its disabled state is a text
+   colour rather than a wash over the whole pill. */
 .dc-feed__scope .chip:disabled {
-  opacity: 0.45;
+  color: var(--ink-3);
   cursor: not-allowed;
 }
 
@@ -509,6 +513,8 @@
   color: var(--ink);
 }
 
+/* The placeholder is a row of bullets standing in for an absent value, not
+   copy — ink-3 keeps an empty field from reading as a filled one. */
 .dc-code-input::placeholder {
   color: var(--ink-3);
   letter-spacing: 0.06em;

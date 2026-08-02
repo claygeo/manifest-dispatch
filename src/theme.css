@@ -259,7 +259,7 @@ a {
   font-size: var(--type-plate);
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .plate--accent {
@@ -268,9 +268,12 @@ a {
   border-bottom-color: var(--accent-line);
 }
 
+/* On a tinted plate the id takes the plate's own hue. It used to be knocked
+   back to 0.8 as well; the mono size and weight already separate it from the
+   header beside it, and an order or manifest id is the one string on the row
+   somebody may have to read off a screen and type somewhere else. */
 .plate--accent .plate-id {
   color: var(--accent);
-  opacity: 0.8;
 }
 
 .plate--amber {
@@ -281,7 +284,6 @@ a {
 
 .plate--amber .plate-id {
   color: var(--amber);
-  opacity: 0.8;
 }
 
 .plate--quiet {
@@ -306,10 +308,12 @@ a {
   white-space: nowrap;
 }
 
+/* The subtitle beside the wordmark rides the accent fill, so it inherits
+   --accent-ink solid. Weight and size are the hierarchy; an opacity wash on
+   text that names the surface you are looking at is not. */
 .wordmark__sub {
   font-weight: 500;
   font-size: var(--type-micro);
-  opacity: 0.82;
 }
 
 /* Soft card. */
@@ -420,7 +424,7 @@ a {
 }
 
 .chip--quiet {
-  color: var(--ink-3);
+  color: var(--ink-2);
   border-color: var(--border);
   background: transparent;
 }
@@ -484,8 +488,12 @@ a {
   letter-spacing: 0.04em;
 }
 
+/* Kept as the semantic marker for "this is the supporting line", and it still
+   sets a colour where it is used without `.micro`. What it no longer does is
+   drop to ink-3: this modifier was carrying addresses, item names, ETA drift
+   and the facility licence line, none of which are decoration. */
 .micro--dim {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* Field label above a value. Sentence case now — the caps/mono label survives
@@ -495,7 +503,7 @@ a {
   font-size: var(--type-micro);
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .rule {
@@ -530,6 +538,9 @@ a {
   color: var(--accent);
 }
 
+/* ink-3 belongs here and nowhere else in this file. DESIGN.md v2 names it the
+   DISABLED tone, and a control you cannot press is the one thing on screen
+   that is allowed to be hard to read. */
 .btn:disabled {
   color: var(--ink-3);
   cursor: not-allowed;
@@ -592,6 +603,17 @@ a {
   }
 }
 
+/* Lazy-route fallback. One line, on the page field — never a spinner. */
+.app-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--field);
+  color: var(--ink-2);
+  font-size: var(--type-body);
+}
+
 /* ============================================================== map ====== */
 
 .map-root {
@@ -606,7 +628,7 @@ a {
 /* Attribution is required by OSM/OpenMapTiles — keep it, dress it. */
 .maplibregl-ctrl-attrib {
   background: var(--panel-glass) !important;
-  color: var(--ink-3) !important;
+  color: var(--ink-2) !important;
   font-family: var(--font-ui) !important;
   font-size: 9.5px !important;
   letter-spacing: 0;

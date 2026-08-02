@@ -11,11 +11,14 @@
  *   BROADCAST_*  `npm run bench:broadcast` (scripts/bench-broadcast.mjs) against
  *                the real Supabase project, run 2026-08-02T18:39:33Z. Figures
  *                copied verbatim from that run's JSON block.
- *   TEST_COUNTS  `npm test` (vitest, 8 files) and `npm run test:rpc`
+ *   TEST_COUNTS  `npm test` (vitest) and `npm run test:rpc`
  *                (scripts/test-rpcs.mjs, 25 contract checks against the live
  *                project).
  *
  * If a bench is re-run, this file changes with it or the page starts lying.
+ * `unitFiles` is no longer taken on trust: proof.test.ts counts the vitest
+ * files in the repo and fails if this figure has drifted from them, which is
+ * exactly how it went stale at 242/8 while the suite was past 300.
  */
 
 export interface BroadcastTier {
@@ -81,8 +84,8 @@ export const BROADCAST_RUN = {
 
 export const TEST_COUNTS = {
   /** `npm test` — vitest, green. */
-  unit: 242,
-  unitFiles: 8,
+  unit: 370,
+  unitFiles: 16,
   /** `npm run test:rpc` — contract checks fired at the real Supabase RPCs. */
   rpc: 25,
 } as const

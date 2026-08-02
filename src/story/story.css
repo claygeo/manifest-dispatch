@@ -216,8 +216,11 @@ html.st-scroll #root {
   margin-bottom: 0;
 }
 
+/* "Dim" is a size and a role, not a contrast level. DESIGN.md v2 names ink-3
+   the DISABLED tone; a caveat the reader is meant to actually read is not
+   disabled, so it steps down in size and stays at the secondary ink. */
 .st-note--dim {
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 13.5px;
 }
 
@@ -329,7 +332,7 @@ html.st-scroll #root {
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.02em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -397,7 +400,7 @@ html.st-scroll #root {
   font-family: var(--font-ui);
   font-size: var(--type-micro);
   line-height: 1.5;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .st-caption a {
@@ -433,7 +436,7 @@ html.st-scroll #root {
   font-family: var(--font-mono);
   font-size: var(--type-plate);
   letter-spacing: 0.03em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   padding-top: 1px;
 }
 
@@ -453,7 +456,7 @@ html.st-scroll #root {
   font-family: var(--font-ui);
   font-size: 12.5px;
   line-height: 1.55;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 @media (max-width: 560px) {
@@ -461,6 +464,217 @@ html.st-scroll #root {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
   }
+}
+
+/* ========================================================= how it works == */
+
+/* The mechanism strip: POS -> Manifest -> driver / customer / manifest.
+   Three bordered stages in a row, connected by a chevron that lives in the
+   grid gap, and the middle stage is the only thing on the page wearing the
+   accent as a fill — which is the positioning argument drawn instead of
+   argued. Pure markup: no SVG, no icon font, no image. The <ol> is the real
+   structure, so a screen reader gets the sequence without the decoration. */
+.st-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  margin: 0 0 34px;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .st-flow {
+    /* The owned stage is wider because it carries twice the content. The
+       asymmetry is the point: one box in a line of three, but the busy one. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+.st-flow__stage {
+  position: relative;
+  min-width: 0;
+}
+
+.st-flow__card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 15px 6px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+}
+
+/* The one accent moment in the strip. Solid border rather than the 38%
+   accent line: at 10% alpha the fill alone is nearly invisible on paper, and
+   this box being obviously the odd one out IS the argument. */
+.st-flow__stage--ours .st-flow__card {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.st-flow__kicker {
+  margin: 0 0 3px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+.st-flow__stage--ours .st-flow__kicker {
+  color: var(--accent);
+}
+
+.st-flow__title {
+  margin: 0 0 9px;
+  font-family: var(--font-ui);
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+}
+
+/* Tight rule-separated rows — this is the ops density, not the prose one. */
+.st-flow__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-flow__lines li {
+  padding: 7px 0;
+  border-top: var(--hairline) solid var(--border);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.st-flow__stage--ours .st-flow__lines li {
+  border-top-color: var(--accent-line);
+}
+
+/* The connector, drawn in the gap between two stages. Decorative and
+   aria-hidden; the list order is what actually carries the sequence. */
+.st-flow__link {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  left: 50%;
+  top: -28px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.st-flow__link::before {
+  content: '';
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid var(--border-strong);
+  border-right: 1.5px solid var(--border-strong);
+  /* points down while the strip is stacked */
+  transform: rotate(135deg) translate(-1px, -1px);
+}
+
+@media (min-width: 900px) {
+  .st-flow__link {
+    left: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .st-flow__link::before {
+    /* points right once the strip is a row */
+    transform: rotate(45deg) translate(-1px, 1px);
+  }
+}
+
+/* The two prose blocks under the strip: what crosses the boundary, and why the
+   audit trail is a by-product rather than a chore. */
+.st-mech {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+}
+
+@media (min-width: 900px) {
+  .st-mech {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px;
+    align-items: start;
+  }
+}
+
+.st-mech__block {
+  max-width: 62ch;
+}
+
+.st-mech__label {
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+}
+
+/* The takeaway. Sentences, not bullets — the job of this block is to be said
+   out loud by somebody who does not have the page open. */
+.st-repeat {
+  max-width: 860px;
+  margin-top: 30px;
+  padding: 17px 19px 18px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-soft);
+}
+
+.st-repeat__head {
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.st-repeat__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: st-say;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.st-repeat__list li {
+  counter-increment: st-say;
+  position: relative;
+  padding-left: 25px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.st-repeat__list li::before {
+  content: counter(st-say);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
 }
 
 /* ================================================================ proof == */
@@ -492,7 +706,7 @@ html.st-scroll #root {
 .st-table thead th {
   font-weight: 500;
   font-size: var(--type-micro);
-  color: var(--ink-3);
+  color: var(--ink-2);
   border-bottom-color: var(--border-strong);
 }
 
@@ -530,7 +744,7 @@ html.st-scroll #root {
   font-size: var(--type-plate);
   letter-spacing: 0.02em;
   line-height: 1.55;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .st-stats {
@@ -578,7 +792,7 @@ html.st-scroll #root {
   font-family: var(--font-ui);
   font-size: var(--type-micro);
   font-weight: 600;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .st-caveats ul {
@@ -593,7 +807,7 @@ html.st-scroll #root {
   font-family: var(--font-ui);
   font-size: 12.5px;
   line-height: 1.6;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* ============================================ code + field excerpts ====== */
@@ -631,7 +845,7 @@ html.st-scroll #root {
   font-family: var(--font-mono);
   font-size: var(--type-plate);
   letter-spacing: 0.03em;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* Field name -> what it records. Same shape as the order record above, so the
@@ -696,6 +910,60 @@ html.st-scroll #root {
 .st-switch .chip:hover {
   border-color: var(--accent-line);
   color: var(--accent);
+}
+
+/* ============================================================== teaser === */
+
+/* The one section that asks the reader to do something. A card rather than a
+   bare section so it reads as an invitation instead of another chapter. */
+.st-teaser {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  max-width: 960px;
+  padding: 24px 24px 26px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+  box-shadow: var(--shadow-ambient);
+}
+
+.st-teaser__copy {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+
+/* Smaller than a section title: this one lives inside a card. */
+.st-title--sm {
+  font-size: clamp(24px, 3.4vw, 34px);
+}
+
+/* The sequencing philosophy, given the same left rule the takeaway block uses
+   so the two "read this bit" moments on the page rhyme. */
+.st-teaser__rule {
+  margin: 16px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--accent-line);
+}
+
+.st-teaser__cta {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  border-radius: var(--radius-soft);
+}
+
+@media (max-width: 560px) {
+  .st-teaser {
+    padding: 20px 18px 22px;
+  }
+
+  .st-teaser__cta {
+    width: 100%;
+  }
 }
 
 /* =============================================================== links === */
@@ -791,7 +1059,7 @@ html.st-scroll #root {
   font-family: var(--font-ui);
   font-size: 12px;
   line-height: 1.6;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .st-footer__top {

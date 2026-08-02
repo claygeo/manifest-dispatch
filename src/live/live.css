@@ -86,12 +86,13 @@
   font-size: 16px;
   line-height: 1;
   color: var(--amber);
-  opacity: 0.75;
-  transition: opacity var(--t-fast) var(--ease);
+  transition: background var(--t-fast) var(--ease);
 }
 
+/* The dismiss glyph is a text node, so it takes a solid token and the hover
+   affordance moves to the surface underneath it rather than to its opacity. */
 .lv-banner__close:hover {
-  opacity: 1;
+  background: var(--amber-soft);
 }
 
 /* ------------------------------------------------------- driver GPS rail -- */
@@ -125,7 +126,7 @@
   border: var(--hairline) solid var(--border-strong);
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-family: var(--font-ui);
   font-size: 10.5px;
   font-weight: 500;
@@ -134,7 +135,7 @@
 }
 
 .lv-gps__toggle:hover {
-  color: var(--ink-2);
+  color: var(--ink);
   border-color: var(--accent-line);
 }
 
@@ -158,6 +159,6 @@
    spends amber only on things a human has to act on. */
 .lv-note--quiet {
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 

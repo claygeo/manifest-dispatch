@@ -80,7 +80,7 @@
   font-size: var(--type-micro);
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -146,7 +146,7 @@
   font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -373,8 +373,15 @@
   cursor: default;
 }
 
-.dv-card--complete .dv-card-body {
-  opacity: 0.62;
+/* A finished run dims to field values (DESIGN.md: "Delivered dims to field
+   values — no celebration green"). Dimming with a solid token rather than an
+   opacity wash: at 0.62 the driver name and the ETA numeral fell under 3:1 on
+   the paper theme, and a run a driver may still need to read is not disabled.
+   The chips and the label inside are already secondary ink, so only the two
+   primary-ink elements have to step down. */
+.dv-card--complete .dv-card-driver,
+.dv-card--complete .dv-card-body .numeral {
+  color: var(--ink-2);
 }
 
 .dv-card-body {
@@ -521,7 +528,7 @@
   border: var(--hairline) solid var(--border);
   border-radius: var(--radius-tight);
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-family: var(--font-ui);
   font-size: var(--type-body);
   font-weight: 500;
@@ -551,7 +558,7 @@
   font-size: var(--type-body);
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .dv-tick:last-child {
@@ -634,13 +641,17 @@
   padding: 10px 14px;
 }
 
+/* The sub-label on a primary slab. It sits on the fern fill and used to be
+   knocked back with opacity, which is the one place on the driver app a
+   sentence the driver is being asked to act on was under-contrasted. Size and
+   weight already separate it from the 15px/600 label above it, so it inherits
+   the button's own ink at full strength. */
 .dv-slab-hint {
   display: block;
   margin-top: 3px;
   font-size: var(--type-micro);
   font-weight: 500;
   letter-spacing: 0;
-  opacity: 0.78;
 }
 
 .dv-quiet {
@@ -650,13 +661,13 @@
   font-size: var(--type-body);
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
   background: none;
   border: none;
 }
 
 .dv-quiet:hover {
-  color: var(--ink-2);
+  color: var(--ink);
 }
 
 .dv-note {
@@ -664,5 +675,5 @@
   font-size: var(--type-micro);
   line-height: 1.5;
   letter-spacing: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }

@@ -16,8 +16,9 @@
  * requestAnimationFrame-driven, pausable, and it cleans up after itself.
  */
 
-import { useStore } from '../store'
+import { useStore, type ManifestState } from '../store'
 import { legsFor } from '../data/seed'
+import type { Run } from '../types'
 import { pointOnLeg, hashSeed, rng, type PreparedLeg } from './geo'
 import { DEMO_TIME_MULTIPLIER, dwellFor, etaMinutesTo, speedJitterFor } from './eta'
 import { stepDriverRun } from '../driver/manualDrive'
@@ -76,25 +77,49 @@ export function createSimEngine(): SimEngine {
 
   const store = () => useStore.getState()
 
+  /** A fresh simulation mirror for one run, picked up from wherever it already is. */
+  function makeSim(runId: string, run: Run): RunSim {
+    return {
+      runId,
+      legs: legsFor(runId),
+      stopCount: run.stops.length,
+      phase: run.status === 'active' ? 'driving' : run.status === 'complete' ? 'done' : 'idle',
+      legIndex: run.currentLeg,
+      progress: run.progress,
+      dwellRemainingS: 0,
+      stagedElapsedMs: 0,
+      currentFailed: false,
+    }
+  }
+
   function resync(): void {
     const s = store()
     generation = s.generation
     completeSince = null
-    sims = s.runOrder.map((runId) => {
+    sims = s.runOrder.map((runId) => makeSim(runId, s.runs[runId]))
+  }
+
+  /**
+   * Adopt runs that appeared (or drop ones that vanished) WITHOUT touching the
+   * runs already driving.
+   *
+   * `/plan` can put a new run on the board mid-session (`store.addRun`). A full
+   * `resync` would notice it, but resync also rebuilds every other mirror from
+   * scratch — a van sitting in `dwell_id` would come back as `driving` at
+   * progress 1 and immediately re-arrive at a stop it had already closed out.
+   * So: same generation, same simulation, just a roster diff.
+   */
+  function syncRoster(s: ManifestState): void {
+    const live = new Set(s.runOrder)
+    if (sims.some((sim) => !live.has(sim.runId))) {
+      sims = sims.filter((sim) => live.has(sim.runId))
+    }
+    const known = new Set(sims.map((sim) => sim.runId))
+    for (const runId of s.runOrder) {
+      if (known.has(runId)) continue
       const run = s.runs[runId]
-      const legs = legsFor(runId)
-      return {
-        runId,
-        legs,
-        stopCount: run.stops.length,
-        phase: run.status === 'active' ? 'driving' : run.status === 'complete' ? 'done' : 'idle',
-        legIndex: run.currentLeg,
-        progress: run.progress,
-        dwellRemainingS: 0,
-        stagedElapsedMs: 0,
-        currentFailed: false,
-      }
-    })
+      if (run) sims.push(makeSim(runId, run))
+    }
   }
 
   function stopIdAt(runId: string, legIndex: number): string | null {
@@ -326,6 +351,7 @@ export function createSimEngine(): SimEngine {
 
     const s = store()
     if (s.generation !== generation) resync()
+    else if (sims.length !== s.runOrder.length) syncRoster(s)
     // Deliberately NOT gated on `mode`. A live session takes over exactly one
     // run (see `liveRunId` above); freezing the other two would leave a
     // dispatcher staring at a dead map the moment a real phone connects.
