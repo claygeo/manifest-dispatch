@@ -1,13 +1,15 @@
 /**
  * Event feed — the console's right rail.
  *
- * DESIGN: "delivery events (departed, arrived, ID VERIFIED, closed — CASH) as a
+ * DESIGN: "delivery events (departed, arrived, ID verified, closed — cash) as a
  * chat-transcript-style timeline, newest on top, mono timestamps." The
  * transcript spine is a hairline with a tick per event, so the column reads as
- * one conversation rather than a table of rows.
+ * one conversation rather than a table of rows. v2 keeps the transcript tight —
+ * the stamps stay mono because a timestamp is a record; the event names are UI
+ * text and read as sentence case.
  *
- * Collapsible: folded, the panel becomes a labelled equipment spine on the
- * right edge and the map reclaims the width.
+ * Collapsible: folded, the panel becomes a labelled spine on the right edge and
+ * the map reclaims the width.
  *
  * Accent discipline: a row only takes the live accent when it belongs to the
  * currently selected run — accent means "this is the thing you are watching".
@@ -21,14 +23,14 @@ import { isLateArrivalNote } from '../window'
 import { ChevronRight } from './icons'
 
 const TYPE_LABEL: Record<DeliveryEventType, string> = {
-  run_started: 'RUN STARTED',
-  departed: 'DEPARTED',
-  arrived: 'ARRIVED',
-  id_verified: 'ID VERIFIED',
-  id_failed: 'ID FAILED',
-  closed: 'CLOSED',
-  exception: 'EXCEPTION',
-  note: 'NOTE',
+  run_started: 'Run started',
+  departed: 'Departed',
+  arrived: 'Arrived',
+  id_verified: 'ID verified',
+  id_failed: 'ID failed',
+  closed: 'Closed',
+  exception: 'Exception',
+  note: 'Note',
 }
 
 const AMBER_TYPES: DeliveryEventType[] = ['exception', 'id_failed']
@@ -65,7 +67,7 @@ function detailOf(event: DeliveryEvent): string {
     case 'closed':
       return [meta.payment, meta.amount].filter(Boolean).join(' · ')
     case 'departed':
-      return meta.to ? `TO ${meta.to}` : ''
+      return meta.to ? `To ${meta.to}` : ''
     case 'arrived':
       return meta.window ?? ''
     case 'exception':
@@ -100,7 +102,7 @@ function EventRowBase({ event, subject, detail, tone, onSelect }: EventRowProps)
       </span>
       <span className="dc-ev__body">
         <span className="dc-ev__head">
-          <span className="micro micro--mono dc-ev__type">{TYPE_LABEL[event.type]}</span>
+          <span className="dc-ev__type">{TYPE_LABEL[event.type]}</span>
           {subject ? <span className="micro micro--mono micro--dim">{subject}</span> : null}
         </span>
         {detail ? <span className="micro micro--dim dc-ev__detail">{detail}</span> : null}
@@ -133,7 +135,7 @@ export function EventFeed({
           aria-expanded={false}
           title="Expand event feed"
         >
-          {`EVENT FEED · ${totalCount}`}
+          {`Event feed · ${totalCount}`}
         </button>
       </aside>
     )
@@ -145,8 +147,8 @@ export function EventFeed({
   return (
     <aside className="glass dc-feed" aria-label="Event feed">
       <div className="plate dc-feed__plate">
-        <span>EVENT FEED</span>
-        <span>{`${events.length}/${totalCount}`}</span>
+        <span>Event feed</span>
+        <span className="plate-id">{`${events.length}/${totalCount}`}</span>
         <button
           type="button"
           className="dc-plate-btn"
@@ -167,18 +169,18 @@ export function EventFeed({
           disabled={!scopeRun && !scopeTarget}
           title={scopeRun ? 'Show the whole fleet' : 'Scope the feed to the selected run'}
         >
-          {scopeRun ? `SCOPE ${scopeRun.label.toUpperCase()}` : 'SCOPE FLEET'}
+          {scopeRun ? `Scope · ${scopeRun.label}` : 'Scope · fleet'}
         </button>
-        <span className="micro micro--mono micro--dim">NEWEST FIRST</span>
+        <span className="micro micro--dim">Newest first</span>
       </div>
 
       <div className="dc-feed__scroll">
         {events.length === 0 ? (
-          <div className="micro micro--dim dc-feed__empty">NO EVENTS ON THIS SCOPE YET.</div>
+          <div className="micro micro--dim dc-feed__empty">No events on this scope yet.</div>
         ) : (
           events.map((event) => {
             const stop = event.stopId ? stops[event.stopId] : null
-            const subject = stop?.orderCode ?? runs[event.runId]?.label.toUpperCase() ?? ''
+            const subject = stop?.orderCode ?? runs[event.runId]?.label ?? ''
             const tone: EventRowProps['tone'] = isAmber(event)
               ? 'amber'
               : scopableRunId && event.runId === scopableRunId

@@ -3,6 +3,9 @@
  * component vocabulary lives in theme.css as classes (.plate, .glass,
  * .ticket, .chip, .numeral, .micro, .btn), so surfaces stay consistent
  * without importing a component library.
+ *
+ * v2 register: sentence case everywhere. The honesty labels say exactly what
+ * they said before — only the shouting is gone.
  */
 
 import { useStore } from '../store'
@@ -14,11 +17,11 @@ export function DemoChip({ label }: { label?: string }) {
   if (mode === 'live') {
     return (
       <span className={liveStatus === 'degraded' ? 'chip chip--amber' : 'chip chip--accent'}>
-        {liveStatus === 'degraded' ? 'LIVE — DEGRADED' : 'LIVE SESSION'}
+        {liveStatus === 'degraded' ? 'Live — degraded' : 'Live session'}
       </span>
     )
   }
-  return <span className="chip chip--accent">{label ?? 'DEMO FLEET'}</span>
+  return <span className="chip chip--accent">{label ?? 'Demo fleet'}</span>
 }
 
 export function ThemeToggle() {
@@ -32,17 +35,20 @@ export function ThemeToggle() {
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
     >
-      {theme === 'dark' ? 'NIGHT' : 'PAPER'}
+      {theme === 'dark' ? 'Night' : 'Paper'}
     </button>
   )
 }
 
-/** Product wordmark, rendered as a plate — never as a logo image. */
+/**
+ * Product wordmark — a filled fern block in the UI grotesk, never a logo image.
+ * DESIGN v2 keeps the wordmark in Familjen rather than the display serif.
+ */
 export function Wordmark({ subtitle }: { subtitle?: string }) {
   return (
-    <div className="plate plate--accent" style={{ gap: 10 }}>
-      <span>MANIFEST</span>
-      {subtitle ? <span style={{ opacity: 0.72 }}>{subtitle}</span> : null}
+    <div className="wordmark">
+      <span>Manifest</span>
+      {subtitle ? <span className="wordmark__sub">{subtitle}</span> : null}
     </div>
   )
 }

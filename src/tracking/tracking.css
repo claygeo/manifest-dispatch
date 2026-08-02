@@ -1,14 +1,15 @@
 /* =========================================================================
    Customer tracking `/t/:orderCode` — one card + the map.
 
-   Register: the same instrument the dispatcher uses, stripped to the single
-   thing a customer needs. No account, no nav, no marketing chrome. The map is
-   still the page; the card floats over it (docked bottom on a phone, left
-   column on a desktop) exactly like a console panel.
+   Register (DESIGN.md v2): the most welcoming surface in the app. Same bones
+   as the console panel — the map is still the page and the card floats over it
+   (docked bottom on a phone, left column on a desktop) — but this is where the
+   warmth lands: a paper card, the display serif on the "Arriving by" headline,
+   sentence case throughout, fern accents, zero chrome.
 
    Every value here resolves to a token in theme.css. Nothing new carries
-   chroma: accent = the live delivery, amber = an exception the customer has
-   to act on, and that is the whole palette.
+   chroma: fern = the live delivery, amber = an exception the customer has to
+   act on, and that is the whole palette.
    ========================================================================= */
 
 .tk-root {
@@ -89,11 +90,12 @@
   color: var(--ink-2);
 }
 
-/* ETA drift, inline, no red/green badge (DESIGN.md) */
+/* ETA drift, inline, no red/green badge (DESIGN.md). Mono: these are clock
+   times, which is the identifier register. */
 .tk-drift {
   font-family: var(--font-mono);
   font-size: var(--type-plate);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--ink-3);
   margin-top: 5px;
 }
@@ -109,12 +111,11 @@
 .tk-step {
   border-top: 2px solid var(--border-strong);
   padding-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
   font-weight: 500;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   line-height: 1.3;
-  text-transform: uppercase;
   color: var(--ink-3);
   transition:
     color var(--t-base) var(--ease),
@@ -145,16 +146,16 @@
 /* ---- amber is only ever an exception the customer must act on ---- */
 
 .tk-note {
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: var(--hairline) solid var(--amber);
   background: var(--amber-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-tight);
   color: var(--amber);
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
-  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1.5;
-  text-transform: uppercase;
 }
 
 /* ---- order summary: receipt register, dotted leaders ---- */
@@ -204,15 +205,21 @@
 
 .tk-total-value {
   flex: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--type-body);
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
 
 .tk-fine {
   padding: 0 14px 12px;
+}
+
+/* Unknown order code: an empty state, so it earns the display serif. */
+.tk-miss-head {
+  margin: 0;
+  padding: 16px 14px 0;
 }
 
 /* ---- unknown order code: still a designed surface ---- */

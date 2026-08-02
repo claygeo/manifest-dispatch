@@ -8,7 +8,7 @@
  *
  * It says two things, and the second one is the point: the transport is down,
  * AND how much of the shift is still sitting in the local outbox waiting to be
- * written (see ./queue.ts). "N EVENTS QUEUED" is the difference between an
+ * written (see ./queue.ts). "N events queued" is the difference between an
  * outage you can reason about and one you have to trust.
  *
  * What it does NOT do: hide, retry silently, or pretend. The local sim keeps
@@ -47,11 +47,11 @@ export function LiveBanner({ placement = 'float' }: LiveBannerProps) {
 
   if (!showing || dismissed) return null
 
-  const tag = degraded ? 'LIVE UNAVAILABLE' : 'SYNCING'
-  const backlog = queued > 0 ? `${queued} EVENT${queued === 1 ? '' : 'S'} QUEUED` : null
+  const tag = degraded ? 'Live unavailable' : 'Syncing'
+  const backlog = queued > 0 ? `${queued} event${queued === 1 ? '' : 's'} queued` : null
   const text = degraded
-    ? ['DEMO CONTINUES LOCALLY', backlog].filter(Boolean).join(' · ')
-    : `${backlog} — NO DATA LOST`
+    ? ['Demo continues locally', backlog].filter(Boolean).join(' · ')
+    : `${backlog} — no data lost`
 
   return (
     <div className={`lv-banner lv-banner--${placement}`} role="status" aria-live="polite">

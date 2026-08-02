@@ -2,8 +2,9 @@
  * Stop ticket — the console's atom.
  *
  * BotW neutral-shelf rule: identical geometry for every stop, always. Status is
- * carried by left-border weight + fill tint + ONE small mono chip. The card is
+ * carried by left-border weight + fill tint + ONE small pill chip. The card is
  * never resized and never re-coloured wholesale, and badges never pile up.
+ * Tight 8px radius: this is dense ops data, not a card (DESIGN.md v2).
  *
  * Amber appears in exactly two situations, both of which a dispatcher must act
  * on: the stop is in `exception`, or its projected arrival misses the delivery
@@ -16,7 +17,7 @@
 import { memo, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ExceptionReason, Stop } from '../types'
-import { formatMoney, PAYMENT_LABEL, shortName, STOP_STATUS_LABEL } from '../format'
+import { formatMoney, PAYMENT_TEXT, shortName, STOP_STATUS_TEXT } from '../format'
 import { ChevronDown, ChevronUp } from './icons'
 
 export interface StopTicketProps {
@@ -46,9 +47,9 @@ const CANCEL_ARM_MS = 4000
 const OPEN_STATUSES: Stop['status'][] = ['pending', 'enroute', 'arrived', 'id_check']
 
 const FLAGS: { reason: ExceptionReason; label: string }[] = [
-  { reason: 'no_answer', label: 'NO ANSWER' },
-  { reason: 'cannot_verify', label: 'NO ID' },
-  { reason: 'address_issue', label: 'ADDRESS' },
+  { reason: 'no_answer', label: 'No answer' },
+  { reason: 'cannot_verify', label: 'No ID' },
+  { reason: 'address_issue', label: 'Address' },
 ]
 
 function ticketClass(stop: Stop, selected: boolean, late: boolean, canReorder: boolean): string {
@@ -65,11 +66,11 @@ function ticketClass(stop: Stop, selected: boolean, late: boolean, canReorder: b
 
 function statusChip(stop: Stop, late: boolean, cancelled: boolean): { text: string; amber: boolean } {
   // Still ONE chip (no badge pile): a cancelled order just names itself, because
-  // "EXCEPTION" would send a dispatcher chasing a doorstep that never happened.
-  if (stop.status === 'exception') return { text: cancelled ? 'CANCELLED' : 'EXCEPTION', amber: true }
-  if (stop.status === 'delivered') return { text: STOP_STATUS_LABEL.delivered, amber: false }
-  if (late) return { text: 'LATE', amber: true }
-  return { text: STOP_STATUS_LABEL[stop.status], amber: false }
+  // "Exception" would send a dispatcher chasing a doorstep that never happened.
+  if (stop.status === 'exception') return { text: cancelled ? 'Cancelled' : 'Exception', amber: true }
+  if (stop.status === 'delivered') return { text: STOP_STATUS_TEXT.delivered, amber: false }
+  if (late) return { text: 'Late', amber: true }
+  return { text: STOP_STATUS_TEXT[stop.status], amber: false }
 }
 
 function StopTicketBase({
@@ -135,7 +136,7 @@ function StopTicketBase({
             {`${stop.window[0]}–${stop.window[1]}`}
           </span>
           <span className={late ? 'micro micro--mono' : 'micro micro--mono micro--dim'}>
-            {etaClockLabel ? `ETA ${etaClockLabel}` : stop.closedAt ? 'CLOSED' : '—'}
+            {etaClockLabel ? `ETA ${etaClockLabel}` : stop.closedAt ? 'Closed' : '—'}
           </span>
         </div>
 
@@ -146,8 +147,8 @@ function StopTicketBase({
                 {`${item.qty}× ${item.name}`}
               </div>
             ))}
-            <div className="micro micro--mono" style={{ marginTop: 4, color: 'var(--ink)' }}>
-              {`${formatMoney(stop.amountDue)} · ${PAYMENT_LABEL[stop.payment]}`}
+            <div className="micro" style={{ marginTop: 4, color: 'var(--ink)', fontWeight: 500 }}>
+              {`${formatMoney(stop.amountDue)} · ${PAYMENT_TEXT[stop.payment]}`}
             </div>
           </div>
         ) : null}
@@ -182,7 +183,7 @@ function StopTicketBase({
         <div className="dc-actions">
           {open ? (
             <>
-              <span className="label">FLAG</span>
+              <span className="label">Flag</span>
               {/* Neutral controls on purpose: amber is reserved for the
                   exception STATE, not for the button that creates it. */}
               {FLAGS.map((f) => (
@@ -195,7 +196,7 @@ function StopTicketBase({
                   {f.label}
                 </button>
               ))}
-              <span className="label">ORDER</span>
+              <span className="label">Order</span>
               <button
                 type="button"
                 className="btn dc-btn-xs"
@@ -210,20 +211,20 @@ function StopTicketBase({
                 }
                 title="Order cancelled after dispatch — the run skips this stop"
               >
-                {cancelArmed ? 'CONFIRM CANCEL' : 'CANCEL'}
+                {cancelArmed ? 'Confirm cancel' : 'Cancel'}
               </button>
             </>
           ) : (
             <span className="label">
               {stop.status === 'exception'
                 ? cancelled
-                  ? 'ORDER CANCELLED'
-                  : 'UNDELIVERABLE'
-                : 'CLOSED OUT'}
+                  ? 'Order cancelled'
+                  : 'Undeliverable'
+                : 'Closed out'}
             </span>
           )}
           <Link className="dc-link" style={{ marginLeft: 'auto' }} to={`/t/${stop.orderCode}`}>
-            TRACKING →
+            Tracking →
           </Link>
         </div>
       ) : null}

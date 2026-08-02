@@ -16,7 +16,7 @@
   -webkit-backdrop-filter: blur(14px) saturate(115%);
   backdrop-filter: blur(14px) saturate(115%);
   border: var(--hairline) solid var(--amber);
-  border-radius: var(--radius);
+  border-radius: var(--radius-soft);
   box-shadow: var(--shadow-ambient);
   overflow: hidden;
 }
@@ -50,20 +50,26 @@
   }
 }
 
+/* The tag is a solid amber flag, not a section header — it overrides .plate
+   entirely so the banner reads as one object. */
 .lv-banner__tag {
   flex: none;
-  padding: 6px 9px;
+  padding: 7px 11px;
+  border: none;
   border-radius: 0;
+  background: var(--amber);
+  color: var(--amber-ink);
+  font-size: var(--type-micro);
+  font-weight: 600;
 }
 
 .lv-banner__text {
   flex: 1 1 auto;
   min-width: 0;
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--amber);
   white-space: nowrap;
   overflow: hidden;
@@ -74,10 +80,10 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  font-family: var(--font-mono);
-  font-size: 15px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  font-size: 16px;
   line-height: 1;
   color: var(--amber);
   opacity: 0.75;
@@ -90,7 +96,7 @@
 
 /* ------------------------------------------------------- driver GPS rail -- */
 
-/* The rail already carries DEMO FLEET + a coordinate readout. Live mode adds
+/* The rail already carries "Demo fleet" + a coordinate readout. Live mode adds
    the source toggle and, when the device refuses to cooperate, one amber line
    explaining why the fix is simulated. */
 
@@ -115,16 +121,15 @@
 
 .lv-gps__toggle {
   flex: none;
-  padding: 2px 6px;
+  padding: 2px 9px;
   border: var(--hairline) solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--ink-3);
-  font-family: var(--font-mono);
-  font-size: 9px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
@@ -139,14 +144,13 @@
 }
 
 .lv-note {
-  padding: 3px 12px 4px;
+  padding: 4px 12px 5px;
   background: var(--amber-soft);
   border-bottom: var(--hairline) solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 9px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--amber);
 }
 

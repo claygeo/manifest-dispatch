@@ -5,10 +5,10 @@
  * floating over it as a boxed glass panel. Nothing here owns a "content area".
  *
  * Layout
- *   top-left     wordmark plate + DEMO FLEET honesty chip + fleet counts
- *   top-right    theme toggle + LIVE session entry
- *   left rail    one run panel per run — plate header, STOP x/y, ONE display
- *                ETA numeral, window compliance, stop tickets
+ *   top-left     wordmark + "Demo fleet" honesty chip + fleet counts
+ *   top-right    theme toggle + live session entry
+ *   left rail    one run panel per run — sentence-case header, Stop x/y, ONE
+ *                display ETA numeral, window compliance, stop tickets
  *   right rail   collapsible event feed, chat-transcript, newest on top
  *
  * Selection is bidirectional: clicking a driver or a stop on the map selects it
@@ -57,10 +57,10 @@ function openingPadding(): MapPadding {
  * armed and the console is waiting for a phone, not that anything is flowing.
  */
 const LIVE_BTN_LABEL: Record<string, string> = {
-  off: 'LIVE',
-  connecting: 'LIVE · ARMED',
-  connected: 'LIVE · ON',
-  degraded: 'LIVE · DEGRADED',
+  off: 'Live',
+  connecting: 'Live · armed',
+  connected: 'Live · on',
+  degraded: 'Live · degraded',
 }
 
 export interface ConsolePageProps {
@@ -262,28 +262,28 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
 
       <div className="dc-topbar">
         <div className="glass dc-strip">
-          <Wordmark subtitle="DISPATCH" />
+          <Wordmark subtitle="Dispatch" />
           <DemoChip />
           {/* Honesty rail: one real phone does not make the whole board real.
               While a live run is publishing, say plainly how much of what is
               moving out there is still the simulation. */}
           {liveRunId ? (
             <span className="chip chip--quiet">
-              {`SIM FLEET ${Math.max(0, fleet.total - 1)}/${fleet.total}`}
+              {`Sim fleet ${Math.max(0, fleet.total - 1)}/${fleet.total}`}
             </span>
           ) : null}
-          <span className="chip">{`RUNS ${fleet.active}/${fleet.total} ACTIVE`}</span>
+          <span className="chip">{`Runs ${fleet.active}/${fleet.total} active`}</span>
           <span className="chip chip--quiet dc-hide-sm">
-            {`DELIVERED ${delivered.done}/${delivered.total}`}
+            {`Delivered ${delivered.done}/${delivered.total}`}
           </span>
           {fleet.exceptions > 0 ? (
-            <span className="chip chip--amber">{`EXCEPTIONS ${fleet.exceptions}/${delivered.total}`}</span>
+            <span className="chip chip--amber">{`Exceptions ${fleet.exceptions}/${delivered.total}`}</span>
           ) : null}
         </div>
 
         <div className="glass dc-strip dc-strip--tools">
           {liveArmed ? (
-            <span className="chip dc-hide-sm">{`SESSION ${liveCode}`}</span>
+            <span className="chip chip--mono dc-hide-sm">{`Session ${liveCode}`}</span>
           ) : null}
           <ThemeToggle />
           <button
@@ -293,7 +293,7 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
             aria-haspopup="dialog"
             title="Pair a driver phone over a private session"
           >
-            {liveArmed ? (LIVE_BTN_LABEL[liveStatus] ?? 'LIVE') : 'LIVE'}
+            {liveArmed ? (LIVE_BTN_LABEL[liveStatus] ?? 'Live') : 'Live'}
           </button>
         </div>
       </div>

@@ -1,12 +1,20 @@
 /* =========================================================================
    Printable delivery manifest `/manifest/:runId` — the compliance surface.
 
-   This is a DOCUMENT, not a dashboard: mono throughout, ruled field blocks
-   instead of cards, plate headers opening every section, signature lines that
-   a human actually signs. It has to survive a printer, so the print block
-   below never relies on background printing being enabled — plates become
-   ruled headers rather than white-on-white ghosts when a browser drops
-   background graphics.
+   THE ONE EXCEPTION TO DESIGN SYSTEM v2 (DESIGN.md: "Deliberately formal:
+   mono, plate headers, signature rules — it is a legal artifact and its
+   seriousness is diegetic. Warm the paper tone, change nothing else. The
+   contrast between friendly app and formal document is the point.")
+
+   So: the v1 instrument register survives inside `.mf-sheet` and nowhere else.
+   theme.css v2 re-authored .plate/.chip/.label/.numeral into the friendly,
+   sentence-case UI voice; the block below re-declares each of them, scoped to
+   the sheet, back to the inverted ALL-CAPS mono document voice. Only the
+   PALETTE moved to v2 — the paper and ink are the new warm neutrals.
+
+   It has to survive a printer, so the print block at the bottom never relies
+   on background printing being enabled — plates become ruled headers rather
+   than white-on-white ghosts when a browser drops background graphics.
    ========================================================================= */
 
 .mf-root {
@@ -39,11 +47,80 @@
   margin: 0 auto;
   background: var(--panel);
   border: var(--hairline) solid var(--border);
-  border-radius: var(--radius);
+  /* A document sheet, not a card: the tight corner, never the soft one. */
+  border-radius: var(--radius-tight);
   box-shadow: var(--shadow-ambient);
   font-family: var(--font-mono);
   color: var(--ink);
   overflow: hidden;
+}
+
+/* ---- the v1 document register, restored inside the sheet only ---- */
+
+/* Plate header: inverted filled bar, background-colour text, mono, uppercase,
+   letterspaced. Every section of the document opens with one. */
+.mf-sheet .plate {
+  padding: 5px 9px;
+  background: var(--ink);
+  color: var(--panel);
+  border-bottom: none;
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mf-sheet .plate--quiet {
+  background: var(--border);
+  color: var(--ink-2);
+}
+
+.mf-sheet .plate--accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.mf-sheet .plate--amber {
+  background: var(--amber);
+  color: var(--amber-ink);
+}
+
+.mf-sheet .plate-id {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: inherit;
+}
+
+/* Field label: mono, uppercase, letterspaced — the form register. */
+.mf-sheet .label {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Document chips are square tokens, not pills. */
+.mf-sheet .chip {
+  border-radius: 3px;
+  border-color: var(--border-strong);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The document's one display numeral stays mono and tabular. */
+.mf-sheet .numeral {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .mf-masthead {
@@ -247,6 +324,7 @@
   padding: 4px 14px 14px;
 }
 
+/* Outside the sheet — this is screen chrome, so it keeps the v2 pill. */
 .mf-run-link {
   color: var(--ink-2);
   text-decoration: none;

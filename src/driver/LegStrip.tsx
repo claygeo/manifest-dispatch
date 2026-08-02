@@ -90,10 +90,10 @@ function projectLeg(runId: string, legIndex: number): Projected | null {
 }
 
 function formatDistance(metres: number): string {
-  if (metres < 25) return 'AT STOP'
+  if (metres < 25) return 'At stop'
   const miles = metres / 1609.344
-  if (miles < 0.1) return `${Math.round(metres / 0.3048 / 50) * 50} FT`
-  return `${miles.toFixed(1)} MI`
+  if (miles < 0.1) return `${Math.round(metres / 0.3048 / 50) * 50} ft`
+  return `${miles.toFixed(1)} mi`
 }
 
 export function LegStrip({
@@ -127,8 +127,8 @@ export function LegStrip({
   return (
     <section className="dv-leg">
       <div className="plate">
-        <span>NEXT LEG</span>
-        <span>{label}</span>
+        <span>Next leg</span>
+        <span className="plate-id">{label}</span>
       </div>
 
       {geo && van ? (
@@ -230,17 +230,26 @@ export function LegStrip({
               {formatDistance(geo.distanceM * (1 - clamped))}
             </span>
             <span className="chip chip--accent">
-              {etaMin === null || etaMin === undefined ? 'ETA —' : `ETA ${etaMin} MIN`}
+              {etaMin === null || etaMin === undefined ? 'ETA —' : `ETA ${etaMin} min`}
             </span>
           </div>
         </div>
       ) : (
-        <div className="dv-leg-empty micro micro--mono">NO LEG GEOMETRY</div>
+        <div className="dv-leg-empty micro micro--dim">No leg geometry</div>
       )}
 
       <div className="dv-tick dv-tick--done" style={{ borderBottom: 'none' }}>
         <i />
-        <span>{stop ? `TO ${stop.orderCode}` : 'RETURN TO DEPOT'}</span>
+        <span>
+          {stop ? (
+            <>
+              {'To '}
+              <span className="micro--mono">{stop.orderCode}</span>
+            </>
+          ) : (
+            'Return to depot'
+          )}
+        </span>
       </div>
     </section>
   )

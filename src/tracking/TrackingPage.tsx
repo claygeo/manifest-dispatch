@@ -5,10 +5,11 @@
  * delivered), `2 STOPS AWAY` chip, ETA window, driver first name, order
  * summary, map with driver dot once out for delivery."
  *
- * Design notes (DESIGN.md):
+ * Design notes (DESIGN.md v2):
  *  - the map is still the page; the card floats over it as a glass panel
- *  - ONE display numeral: the arrival time. Everything else is 11px micro
- *  - the ladder is a segmented rail — filled segments, one accent segment.
+ *  - ONE display numeral: the arrival time, and this is THE display-serif
+ *    moment of the product — "Arriving by 1:01 PM". Everything else is micro
+ *  - the ladder is a segmented rail — filled segments, one fern segment.
  *    No bubbles, no checkmarks, no green "delivered!" celebration: a closed
  *    stop dims to field values
  *  - amber appears only when the customer actually has to do something
@@ -30,7 +31,7 @@ import { isValidSessionCode, normalizeSessionCode } from '../console/liveSession
 import { enterLive, leaveLive } from '../live/session'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
 import { findStopByOrderCode, runOfStop, runStops, stopsAway, windowLabel } from '../selectors'
-import { driftLabel, etaClock, firstName, formatClock, formatMoney, PAYMENT_LABEL } from '../format'
+import { driftLabel, etaClock, firstName, formatClock, formatMoney, PAYMENT_TEXT } from '../format'
 import type { DeliveryEvent, Run, Stop } from '../types'
 import './tracking.css'
 
@@ -40,7 +41,7 @@ const ARRIVING_MIN = 6
 /** Only surface drift once it is worth a customer's attention. */
 const DRIFT_MIN_MS = 120_000
 
-const LADDER = ['PACKED', 'OUT FOR DELIVERY', 'ARRIVING', 'DELIVERED'] as const
+const LADDER = ['Packed', 'Out for delivery', 'Arriving', 'Delivered'] as const
 
 /* ------------------------------------------------------------- helpers --- */
 
@@ -154,7 +155,7 @@ export function TrackingPage() {
   const rail = (
     <>
       <div className="tk-rail">
-        <Wordmark subtitle="TRACKING" />
+        <Wordmark subtitle="Tracking" />
         <DemoChip />
         <div className="tk-rail-end">
           <ThemeToggle />
@@ -175,16 +176,18 @@ export function TrackingPage() {
         <div className="tk-miss">
           <div className="panel tk-miss-card">
             <div className="plate">
-              <span>ORDER NOT FOUND</span>
-              <span>{orderCode ? orderCode.toUpperCase() : '—'}</span>
+              <span>Order not found</span>
+              <span className="plate-id">{orderCode ? orderCode.toUpperCase() : '—'}</span>
             </div>
-            <div className="micro" style={{ padding: '14px 14px 10px' }}>
+            {/* Empty state — one of the display-serif moments (DESIGN.md v2). */}
+            <p className="display tk-miss-head">We can&rsquo;t find that order.</p>
+            <div className="micro" style={{ padding: '8px 14px 10px' }}>
               No order on today&rsquo;s manifests matches that code. Tracking links stay live for
               the whole demo session — try one of these:
             </div>
             <div className="tk-codes">
               {known.map((code) => (
-                <Link key={code} className="chip tk-code" to={`/t/${code}`}>
+                <Link key={code} className="chip chip--mono tk-code" to={`/t/${code}`}>
                   {code}
                 </Link>
               ))}
@@ -214,36 +217,37 @@ export function TrackingPage() {
     : stampOf(events, stop.id, 'closed')
   const arrivedAtMs = stampOf(events, stop.id, 'arrived')
 
-  let headLabel = 'ARRIVING BY'
+  let headLabel = 'Arriving by'
   let headValue = etaClock(simNowMs, stop.etaMin)
   if (delivered) {
-    headLabel = 'DELIVERED AT'
+    headLabel = 'Delivered at'
     headValue = closedAtMs ? formatClock(closedAtMs) : formatClock(simNowMs)
   } else if (exception) {
-    headLabel = 'DELIVERY HELD'
+    headLabel = 'Delivery held'
     headValue = arrivedAtMs ? formatClock(arrivedAtMs) : formatClock(simNowMs)
   } else if (atDoor) {
-    headLabel = 'DRIVER ARRIVED'
+    headLabel = 'Driver arrived'
     headValue = arrivedAtMs ? formatClock(arrivedAtMs) : formatClock(simNowMs)
   } else if (stop.etaMin === null) {
-    headLabel = 'SCHEDULED FOR'
+    headLabel = 'Scheduled for'
     headValue = stop.window[0]
   }
 
+  /* THE display-serif moment of the product (DESIGN.md v2). */
   const numeralClass = exception
-    ? 'numeral numeral--sm numeral--amber'
+    ? 'numeral numeral--sm numeral--serif numeral--amber'
     : delivered
-      ? 'numeral numeral--sm tk-numeral-done'
-      : 'numeral numeral--sm numeral--accent'
+      ? 'numeral numeral--sm numeral--serif tk-numeral-done'
+      : 'numeral numeral--sm numeral--serif numeral--accent'
 
   let statusChip: { text: string; tone: string } | null = null
-  if (exception) statusChip = { text: 'COULD NOT COMPLETE', tone: 'chip chip--amber' }
-  else if (delivered) statusChip = { text: 'HANDED OFF', tone: 'chip' }
-  else if (atDoor) statusChip = { text: 'AT YOUR ADDRESS', tone: 'chip chip--accent' }
-  else if (!out) statusChip = { text: 'AWAITING DISPATCH', tone: 'chip chip--quiet' }
-  else if (away === 0) statusChip = { text: 'NEXT STOP', tone: 'chip chip--accent' }
+  if (exception) statusChip = { text: 'Could not complete', tone: 'chip chip--amber' }
+  else if (delivered) statusChip = { text: 'Handed off', tone: 'chip' }
+  else if (atDoor) statusChip = { text: 'At your address', tone: 'chip chip--accent' }
+  else if (!out) statusChip = { text: 'Awaiting dispatch', tone: 'chip chip--quiet' }
+  else if (away === 0) statusChip = { text: 'Next stop', tone: 'chip chip--accent' }
   else if (away !== null)
-    statusChip = { text: `${away} STOP${away === 1 ? '' : 'S'} AWAY`, tone: 'chip chip--accent' }
+    statusChip = { text: `${away} stop${away === 1 ? '' : 's'} away`, tone: 'chip chip--accent' }
 
   /* ETA drift, inline: `4:12 → 4:19`. Only once it is worth mentioning. */
   let drift: string | null = null
@@ -269,8 +273,8 @@ export function TrackingPage() {
 
       <section className="glass tk-card">
         <div className="plate">
-          <span>{stop.orderCode}</span>
-          <span>{run.label.toUpperCase()}</span>
+          <span>{run.label}</span>
+          <span className="plate-id">{stop.orderCode}</span>
         </div>
 
         <div className="tk-scroll">
@@ -290,7 +294,7 @@ export function TrackingPage() {
             <div className={delivered ? 'tk-ladder tk-ladder--closed' : 'tk-ladder'}>
               {LADDER.map((label, i) => (
                 <div key={label} className={stepClass(i, rung, exception)}>
-                  {exception && i === rung ? 'ON HOLD' : label}
+                  {exception && i === rung ? 'On hold' : label}
                 </div>
               ))}
             </div>
@@ -305,21 +309,21 @@ export function TrackingPage() {
             <hr className="rule" />
 
             <div className="tk-block">
-              <div className="label">{delivered ? 'DELIVERED TO' : 'DELIVERING TO'}</div>
+              <div className="label">{delivered ? 'Delivered to' : 'Delivering to'}</div>
               <div className="tk-address">{stop.address}</div>
             </div>
 
             <div className="tk-block">
-              <div className="label">YOUR DRIVER</div>
+              <div className="label">Your driver</div>
               <div className="tk-row">
                 <span className="tk-address tk-row-name">{firstName(run.driver)}</span>
                 <span className="tk-leader" />
-                <span className="chip chip--quiet tk-qty">{`STOP ${position}/${list.length}`}</span>
+                <span className="chip chip--quiet tk-qty">{`Stop ${position}/${list.length}`}</span>
               </div>
             </div>
 
             <div className="tk-block">
-              <div className="label">{`ORDER — ${units} ITEM${units === 1 ? '' : 'S'}`}</div>
+              <div className="label">{`Order — ${units} item${units === 1 ? '' : 's'}`}</div>
               {stop.items.map((item) => (
                 <div key={item.name} className="tk-row micro">
                   <span className="tk-row-name">{item.name}</span>
@@ -329,7 +333,9 @@ export function TrackingPage() {
               ))}
               <div className="tk-total">
                 <span className="label">
-                  {delivered ? `PAID — ${PAYMENT_LABEL[stop.payment]}` : `DUE ON DELIVERY — ${PAYMENT_LABEL[stop.payment]}`}
+                  {delivered
+                    ? `Paid — ${PAYMENT_TEXT[stop.payment]}`
+                    : `Due on delivery — ${PAYMENT_TEXT[stop.payment]}`}
                 </span>
                 <span className="tk-leader" />
                 <span className="tk-total-value">{formatMoney(stop.amountDue)}</span>

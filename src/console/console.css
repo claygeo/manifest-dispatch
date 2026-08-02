@@ -5,10 +5,12 @@
    (.plate / .glass / .ticket / .chip / .numeral / .micro / .btn / .label).
    Nothing in this file introduces a new colour: every value is a token.
 
-   Rules being honoured (DESIGN.md):
-     - the map IS the page; every control floats over it as a BOXED panel
+   Rules being honoured (DESIGN.md v2):
+     - the map IS the page; every control floats over it as a BOXED glass panel
      - one display-size numeral per panel, everything else 10.5–13px micro
      - amber only where a dispatcher must act
+     - dual radius: the panels are soft (14px), the stop tickets and feed rows
+       they contain are tight (8px) — friendliness is a surface, not a density
      - 150ms ease-out on panel state changes, nothing longer than 250ms
    ========================================================================= */
 
@@ -43,13 +45,14 @@
   pointer-events: auto;
 }
 
-/* A boxed strip so chips never float unboxed over the map. */
+/* A boxed strip so chips never float unboxed over the map. Pills need a hair
+   more breathing room inside a 14px corner than v1's square chips did. */
 .dc-strip {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 4px;
+  padding: 6px;
   min-width: 0;
 }
 
@@ -121,6 +124,16 @@
   min-width: 0;
 }
 
+/* A person's name is UI text, not a record — grotesk, as written. */
+.dc-run__driver {
+  font-size: var(--type-body);
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dc-run__chips {
   display: flex;
   flex-wrap: wrap;
@@ -156,11 +169,10 @@
 }
 
 .dc-link {
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--ink-2);
   transition: color var(--t-fast) var(--ease);
 }
@@ -169,8 +181,14 @@
   color: var(--accent);
 }
 
+/* Tight rounded rows inside the soft panel — the dual radius rule made
+   literal. The list is padded so each ticket keeps its own 8px corner. */
 .dc-stoplist {
   border-top: var(--hairline) solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
 }
 
 /* ------------------------------------------------------------ tickets --- */
@@ -235,7 +253,7 @@
   width: 19px;
   height: 15px;
   border: var(--hairline) solid var(--border);
-  border-radius: 2px;
+  border-radius: 4px;
   color: var(--ink-2);
   background: var(--panel);
   transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
@@ -264,8 +282,9 @@
 }
 
 .btn.dc-btn-xs {
-  padding: 3px 7px;
-  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  font-size: var(--type-plate);
+  border-radius: var(--radius-pill);
 }
 
 /* ---------------------------------------------------------- event feed -- */
@@ -313,14 +332,14 @@
 .dc-feed__scroll {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 6px 0 10px;
+  padding: 6px 5px 10px;
 }
 
 .dc-feed__empty {
   padding: 14px 12px;
 }
 
-/* collapsed: a labelled equipment spine, still boxed */
+/* collapsed: a labelled spine, still boxed */
 .dc-feed__spine {
   flex: 1 1 auto;
   display: flex;
@@ -330,11 +349,10 @@
   width: 100%;
   padding: 12px 0;
   writing-mode: vertical-rl;
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--ink-2);
   transition: color var(--t-fast) var(--ease);
 }
@@ -357,16 +375,18 @@
   opacity: 1;
 }
 
-/* transcript row: mono stamp gutter, hairline spine, tick per event */
+/* transcript row: mono stamp gutter, hairline spine, tick per event.
+   A feed entry is dense ops data — tight radius, never soft. */
 .dc-ev {
   display: grid;
-  grid-template-columns: 60px 1fr;
+  grid-template-columns: 58px 1fr;
   gap: var(--gap-2);
-  padding: 4px 11px;
+  padding: 5px 8px;
   width: 100%;
   text-align: left;
   background: none;
   border: none;
+  border-radius: var(--radius-tight);
   color: inherit;
   transition: background var(--t-fast) var(--ease);
 }
@@ -415,7 +435,13 @@
   gap: 6px;
 }
 
+/* The event TYPE is UI text, not a record — grotesk, sentence case. The
+   timestamp beside it stays mono, because a stamp is a compliance artifact. */
 .dc-ev__type {
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--ink);
 }
 
@@ -440,13 +466,13 @@
   display: grid;
   place-items: center;
   padding: var(--gap-4);
-  background: rgba(4, 9, 10, 0.52);
+  background: rgba(20, 23, 19, 0.56);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
 
 :root[data-theme='light'] .dc-backdrop {
-  background: rgba(28, 35, 38, 0.34);
+  background: rgba(58, 50, 38, 0.3);
 }
 
 .dc-modal {
@@ -471,7 +497,8 @@
   padding: 10px 12px;
   background: var(--field);
   border: var(--hairline) solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-tight);
+  /* Mono here is correct and stays: a session code is an identifier. */
   font-family: var(--font-mono);
   font-size: min(var(--type-display-sm), 6.2vw);
   font-weight: 500;
@@ -503,7 +530,7 @@
   gap: var(--gap-2);
   padding: 7px 9px;
   border: var(--hairline) solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-tight);
   background: var(--field);
 }
 

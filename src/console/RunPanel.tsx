@@ -4,19 +4,20 @@
  * SPEC: "A run panel shows: driver, `STOP 3/5` chip, one display-size ETA
  * numeral, window compliance state."
  *
- * DESIGN, enforced here:
- *  - a plate header starts the section (`RUN A — SOUTH TAMPA`), inverted, mono
+ * DESIGN v2, enforced here:
+ *  - a sentence-case Familjen 600 header starts the section ("Run A — South
+ *    Tampa") with the manifest id trailing it as a small mono suffix
  *  - EXACTLY ONE display-size numeral per panel. Its meaning changes with run
  *    status (planned minutes when staged, next-stop ETA when active) but there
  *    is never a second big number in the box.
- *  - every count is dual-resolution: `STOP 2/4`, `LATE 1/4` — no naked numerals
+ *  - every count is dual-resolution: `Stop 2/4`, `Late 1/4` — no naked numerals
  *  - ETA drift renders inline as `4:12 → 4:19`, never as a red/green badge
  *  - amber only when the dispatcher must act (a stop is missing its window)
  */
 
 import { Link } from 'react-router-dom'
 import type { Run, Selection, Stop, ExceptionReason } from '../types'
-import { formatClock, RUN_STATUS_LABEL } from '../format'
+import { formatClock, RUN_STATUS_TEXT } from '../format'
 import { runCounts, windowState } from '../selectors'
 import type { ManifestFleetView } from '../selectors.types'
 import { legsFor } from '../data/seed'
@@ -46,7 +47,7 @@ export interface RunPanelProps {
   onCancel: (stopId: string) => void
 }
 
-/** 'run-a' -> 'A'. The plate reads `RUN A — SOUTH TAMPA`. */
+/** 'run-a' -> 'A'. The header reads `Run A — South Tampa`. */
 function runLetter(runId: string): string {
   const tail = runId.slice(runId.lastIndexOf('-') + 1)
   return tail.toUpperCase() || runId.toUpperCase()
@@ -120,23 +121,23 @@ export function RunPanel({
   let etaTone = 'dc-numeral--idle'
 
   if (active) {
-    etaLabel = 'NEXT · MIN'
+    etaLabel = 'Next stop · min'
     etaValue = nextEtaMin === null ? '—' : String(nextEtaMin)
     etaTone = lateCount > 0 ? 'numeral--amber' : 'numeral--accent'
     etaSub =
       nextEtaMs === null
-        ? 'AWAITING FIX'
+        ? 'Awaiting fix'
         : baselineMs !== null && Math.abs(driftMin) >= 2
           ? `${compactClock(baselineMs)} → ${compactClock(nextEtaMs)}`
-          : `ARRIVES ${compactClock(nextEtaMs)}`
+          : `Arrives ${compactClock(nextEtaMs)}`
   } else if (staged) {
-    etaLabel = 'PLAN · MIN'
+    etaLabel = 'Planned · min'
     etaValue = String(plannedMinutes(run))
-    etaSub = stops.length > 0 ? `OPENS ${stops[0].window[0]}` : 'NO STOPS'
+    etaSub = stops.length > 0 ? `Opens ${stops[0].window[0]}` : 'No stops'
   } else {
-    etaLabel = 'RUN · CLOSED'
+    etaLabel = 'Run closed'
     etaValue = '—'
-    etaSub = 'RETURNED TO DEPOT'
+    etaSub = 'Returned to depot'
   }
 
   /* Window compliance, dual-resolution. Amber only where a dispatcher must act:
@@ -144,10 +145,10 @@ export function RunPanel({
   const exceptionCount = stops.filter((s) => s.status === 'exception').length
   const windowChip =
     lateCount > 0
-      ? { text: `LATE ${lateCount}/${counts.total}`, cls: 'chip chip--amber' }
+      ? { text: `Late ${lateCount}/${counts.total}`, cls: 'chip chip--amber' }
       : exceptionCount > 0
-        ? { text: `EXCEPTION ${exceptionCount}/${counts.total}`, cls: 'chip chip--amber' }
-        : { text: `IN WINDOW ${counts.total}/${counts.total}`, cls: 'chip chip--quiet' }
+        ? { text: `Exceptions ${exceptionCount}/${counts.total}`, cls: 'chip chip--amber' }
+        : { text: `In window ${counts.total}/${counts.total}`, cls: 'chip chip--quiet' }
 
   return (
     <section
@@ -168,9 +169,11 @@ export function RunPanel({
           onClick={() => onSelectRun(run.id)}
           aria-pressed={selectedRun}
         >
-          {`RUN ${runLetter(run.id)} — ${run.label.toUpperCase()}`}
+          {`Run ${runLetter(run.id)} — ${run.label}`}
         </button>
-        <span>{RUN_STATUS_LABEL[run.status]}</span>
+        {/* DESIGN v2: the section header carries the id as a small mono
+            suffix — mono is the identifier voice, not the header voice. */}
+        <span className="plate-id">{run.manifestId}</span>
         <button
           type="button"
           className="dc-plate-btn"
@@ -185,11 +188,9 @@ export function RunPanel({
 
       <div className="dc-run__body">
         <div className="dc-run__meta">
-          <span className="micro micro--mono" style={{ color: 'var(--ink)' }}>
-            {run.driver.toUpperCase()}
-          </span>
+          <span className="dc-run__driver">{run.driver}</span>
           <div className="dc-run__chips">
-            <span className="chip">{`STOP ${counts.done}/${counts.total}`}</span>
+            <span className="chip">{`Stop ${counts.done}/${counts.total}`}</span>
             <span className={windowChip.cls}>{windowChip.text}</span>
           </div>
         </div>
@@ -197,7 +198,7 @@ export function RunPanel({
         <div className="dc-run__eta">
           <span className="label">{etaLabel}</span>
           <span className={`numeral numeral--sm ${etaTone}`}>{etaValue}</span>
-          <span className="micro micro--mono micro--dim">{etaSub}</span>
+          <span className="micro micro--dim">{etaSub}</span>
         </div>
       </div>
 
@@ -234,13 +235,13 @@ export function RunPanel({
             className="btn btn--primary"
             onClick={() => onStartRun(run.id)}
           >
-            DISPATCH RUN
+            Dispatch run
           </button>
         ) : (
-          <span className="micro micro--mono micro--dim">{run.manifestId}</span>
+          <span className="micro micro--dim">{RUN_STATUS_TEXT[run.status]}</span>
         )}
         <Link className="dc-link" to={`/manifest/${run.id}`}>
-          PRINT MANIFEST →
+          Print manifest →
         </Link>
       </div>
     </section>

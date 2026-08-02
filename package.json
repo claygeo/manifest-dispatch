@@ -17,8 +17,9 @@
     "bench:bundle": "node scripts/bench-bundle.mjs"
   },
   "dependencies": {
+    "@fontsource/familjen-grotesk": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.2.5",
-    "@fontsource/ibm-plex-sans": "^5.2.5",
+    "@fontsource/source-serif-4": "^5.3.0",
     "@maplibre/maplibre-gl-style-spec": "26.2.1",
     "@supabase/supabase-js": "^2.111.0",
     "maplibre-gl": "^5.24.0",

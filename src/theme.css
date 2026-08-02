@@ -1,51 +1,73 @@
 /* =========================================================================
-   Manifest — design system tokens + base components.
-   Every value here traces to DESIGN.md. Two themes, same logic: a desaturated
-   field, ONE live accent, ONE deviation colour. Nothing else carries chroma.
+   Manifest — design system tokens + base components. DESIGN SYSTEM v2.
+
+   Every value here traces to DESIGN.md v2 ("warm professional"). Two themes,
+   same logic: a map-derived neutral field, ONE accent hue (fern), amber for
+   actionable exceptions. Nothing else carries chroma.
+
+   The governing rule: friendliness is a SURFACE, not a density. Chrome, cards
+   and customer surfaces are soft and warm (14px radius, pills, two-layer warm
+   shadows). Operational data — stop tickets, feed rows, tables — stays tight
+   and scannable (8px radius, 11–13px type). Mono is the DOCUMENT voice: order
+   codes, manifest ids, timestamps, coordinates, the printable manifest. It is
+   never the UI voice.
    ========================================================================= */
 
 :root {
-  /* ---- dark: night console (default when the OS prefers dark) ---- */
-  --field-deep: #0d1214; /* page / map water */
-  --field: #131a1d; /* land */
-  --panel: #1a2327;
-  --panel-glass: rgba(26, 35, 39, 0.82);
-  --border: #243036;
-  --border-strong: #33444b;
+  /* ---- dark: "Moss night". A deep neutral with a faint green undertone, so
+         the night basemap and the panels share one atmosphere. Not charcoal,
+         not phosphor, and specifically NOT blue-black. ---- */
+  --field-deep: #1c1f1b; /* deepest paper / map water */
+  --field: #232622; /* page / map land */
+  --panel: #2c302b; /* cards */
+  --panel-glass: rgba(44, 48, 43, 0.84);
+  --border: #3a3e38;
+  --border-strong: #4c5149;
 
-  --ink: #e8f1f2;
-  --ink-2: #8fa6ab;
-  --ink-3: #54696f;
+  --ink: #edeee7;
+  --ink-2: #aeb2a6;
+  --ink-3: #767b6e;
 
-  --accent: #39d0c4;
-  --accent-ink: #04090a; /* text ON accent */
-  --accent-soft: rgba(57, 208, 196, 0.16);
-  --accent-line: rgba(57, 208, 196, 0.45);
+  /* fern — the ONE action/live hue */
+  --accent: #8fbf9a;
+  --accent-hover: #a3cdad;
+  --accent-ink: #16211a; /* text ON accent */
+  --accent-soft: rgba(143, 191, 154, 0.15);
+  --accent-line: rgba(143, 191, 154, 0.42);
+  --accent-dim: #6e8f76; /* delivered / positive, dimmed — never celebration */
 
-  --amber: #e8a33d;
-  --amber-ink: #1a1204;
-  --amber-soft: rgba(232, 163, 61, 0.14);
+  --amber: #e0a24a;
+  --amber-ink: #241704;
+  --amber-soft: rgba(224, 162, 74, 0.14);
 
-  --done: #54696f;
-  --done-soft: rgba(84, 105, 111, 0.12);
+  --done: #767b6e;
+  --done-soft: rgba(118, 123, 110, 0.13);
 
   /* ---- type ---- */
-  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'Familjen Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* bimodal scale (Psycho-Pass rule): ONE display size, everything else micro */
+  /* Glance-anchor scale survives v2 unchanged — that is information design,
+     not styling. ONE display size per panel, everything else micro. Weight and
+     case do the softening. */
   --type-display: 34px;
   --type-display-sm: 28px;
+  --type-head: 13.5px; /* section headers */
   --type-body: 13px;
   --type-micro: 11px;
-  --type-plate: 10.5px;
+  --type-plate: 10.5px; /* mono id suffixes only */
 
   --lh-display: 1;
   --lh-body: 1.45;
 
-  /* ---- geometry ---- */
-  --radius: 6px;
-  --radius-sm: 3px;
+  /* ---- geometry: the dual radius rule ---- */
+  --radius-soft: 14px; /* cards, panels, modals, driver primary, empty states */
+  --radius-tight: 8px; /* dense ops rows, table rows, feed entries, controls */
+  --radius-pill: 999px; /* chips are full pills */
+  /* No generic `--radius`: every call site has to state which side of the
+     density rule it is on, so a soft corner can never leak onto a data row. */
+
   --hairline: 1px;
   --gap-1: 4px;
   --gap-2: 8px;
@@ -53,7 +75,8 @@
   --gap-4: 16px;
   --gap-5: 24px;
 
-  --shadow-ambient: 0 1px 0 rgba(0, 0, 0, 0.4), 0 8px 24px -18px rgba(0, 0, 0, 0.9);
+  /* two soft layers, ambient + key, low opacity, warm-tinted */
+  --shadow-ambient: 0 1px 2px rgba(0, 0, 0, 0.26), 0 14px 34px -20px rgba(0, 0, 0, 0.62);
 
   /* ---- motion: metabolic, never performative ---- */
   --t-fast: 120ms;
@@ -64,33 +87,36 @@
   color-scheme: dark;
 }
 
-/* Light — paper manifest. Applied by OS preference before JS boots... */
+/* Light — "Paper". The UI field IS the map's land tone, one step up. Applied by
+   OS preference before JS boots... */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --field-deep: #e9e6dd;
-    --field: #f4f2ec;
+    --field-deep: #eae6da;
+    --field: #f4f1ea;
     --panel: #ffffff;
-    --panel-glass: rgba(255, 255, 255, 0.86);
-    --border: #d8d3c4;
-    --border-strong: #bdb6a3;
+    --panel-glass: rgba(255, 255, 255, 0.88);
+    --border: #e3ded2;
+    --border-strong: #cfc7b5;
 
-    --ink: #1c2326;
-    --ink-2: #5c6a6e;
-    --ink-3: #9aa6a9;
+    --ink: #262521;
+    --ink-2: #6e6759;
+    --ink-3: #a69e8f;
 
-    --accent: #0e8c82;
+    --accent: #4e7a5a;
+    --accent-hover: #426a4e;
     --accent-ink: #ffffff;
-    --accent-soft: rgba(14, 140, 130, 0.1);
-    --accent-line: rgba(14, 140, 130, 0.4);
+    --accent-soft: rgba(78, 122, 90, 0.1);
+    --accent-line: rgba(78, 122, 90, 0.38);
+    --accent-dim: #83a28c;
 
-    --amber: #b26f1d;
+    --amber: #b57023;
     --amber-ink: #ffffff;
-    --amber-soft: rgba(178, 111, 29, 0.1);
+    --amber-soft: rgba(181, 112, 35, 0.1);
 
-    --done: #9aa6a9;
-    --done-soft: rgba(154, 166, 169, 0.14);
+    --done: #a69e8f;
+    --done-soft: rgba(166, 158, 143, 0.14);
 
-    --shadow-ambient: 0 1px 0 rgba(28, 35, 38, 0.06), 0 10px 26px -20px rgba(28, 35, 38, 0.45);
+    --shadow-ambient: 0 1px 2px rgba(58, 50, 38, 0.05), 0 12px 30px -18px rgba(58, 50, 38, 0.22);
 
     color-scheme: light;
   }
@@ -98,30 +124,32 @@
 
 /* ...and by the explicit toggle after it does. [data-theme] always wins. */
 :root[data-theme='light'] {
-  --field-deep: #e9e6dd;
-  --field: #f4f2ec;
+  --field-deep: #eae6da;
+  --field: #f4f1ea;
   --panel: #ffffff;
-  --panel-glass: rgba(255, 255, 255, 0.86);
-  --border: #d8d3c4;
-  --border-strong: #bdb6a3;
+  --panel-glass: rgba(255, 255, 255, 0.88);
+  --border: #e3ded2;
+  --border-strong: #cfc7b5;
 
-  --ink: #1c2326;
-  --ink-2: #5c6a6e;
-  --ink-3: #9aa6a9;
+  --ink: #262521;
+  --ink-2: #6e6759;
+  --ink-3: #a69e8f;
 
-  --accent: #0e8c82;
+  --accent: #4e7a5a;
+  --accent-hover: #426a4e;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(14, 140, 130, 0.1);
-  --accent-line: rgba(14, 140, 130, 0.4);
+  --accent-soft: rgba(78, 122, 90, 0.1);
+  --accent-line: rgba(78, 122, 90, 0.38);
+  --accent-dim: #83a28c;
 
-  --amber: #b26f1d;
+  --amber: #b57023;
   --amber-ink: #ffffff;
-  --amber-soft: rgba(178, 111, 29, 0.1);
+  --amber-soft: rgba(181, 112, 35, 0.1);
 
-  --done: #9aa6a9;
-  --done-soft: rgba(154, 166, 169, 0.14);
+  --done: #a69e8f;
+  --done-soft: rgba(166, 158, 143, 0.14);
 
-  --shadow-ambient: 0 1px 0 rgba(28, 35, 38, 0.06), 0 10px 26px -20px rgba(28, 35, 38, 0.45);
+  --shadow-ambient: 0 1px 2px rgba(58, 50, 38, 0.05), 0 12px 30px -18px rgba(58, 50, 38, 0.22);
 
   color-scheme: light;
 }
@@ -146,7 +174,7 @@ body,
 }
 
 body {
-  background: var(--field-deep);
+  background: var(--field);
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: var(--type-body);
@@ -203,63 +231,109 @@ a {
 
 /* ======================================================= components ====== */
 
-/* Plate header (Signalis): inverted filled bar, background-colour text, mono,
-   uppercase, letterspaced. Every section starts with one. */
+/* Section header (v2). Sentence-case Familjen 600 on an opaque surface, with a
+   small mono suffix where an ID belongs. The v1 inverted mono plate bar
+   survives ONLY inside the printable manifest, which re-declares it. */
 .plate {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-2);
-  padding: 5px 9px;
-  background: var(--ink);
-  color: var(--panel);
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  padding: 9px 13px;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--type-head);
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  border-bottom: var(--hairline) solid var(--border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* The trailing identifier on a header: mono, quiet, never the loud thing. */
+.plate-id {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
 .plate--accent {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-bottom-color: var(--accent-line);
+}
+
+.plate--accent .plate-id {
+  color: var(--accent);
+  opacity: 0.8;
 }
 
 .plate--amber {
-  background: var(--amber);
-  color: var(--amber-ink);
+  background: var(--amber-soft);
+  color: var(--amber);
+  border-bottom-color: var(--amber);
+}
+
+.plate--amber .plate-id {
+  color: var(--amber);
+  opacity: 0.8;
 }
 
 .plate--quiet {
-  background: var(--border);
+  background: var(--field);
   color: var(--ink-2);
 }
 
-/* Glass panel: translucent over the map, opaque plate header, hairline border,
-   6px radius, no shadow deeper than a hairline + subtle ambient. */
+/* Product wordmark. A filled fern block, grotesk — never a logo image, and
+   never a second brand colour. */
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: var(--radius-tight);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.wordmark__sub {
+  font-weight: 500;
+  font-size: var(--type-micro);
+  opacity: 0.82;
+}
+
+/* Soft card. */
 .panel {
   background: var(--panel);
   border: var(--hairline) solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.glass {
-  background: var(--panel-glass);
-  -webkit-backdrop-filter: blur(14px) saturate(115%);
-  backdrop-filter: blur(14px) saturate(115%);
-  border: var(--hairline) solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-soft);
   box-shadow: var(--shadow-ambient);
   overflow: hidden;
 }
 
-/* Stop ticket (BotW neutral shelf): identical geometry for every stop.
-   Status = left border weight + fill tint + a small mono chip. Never resize,
-   never re-colour the whole card. */
+/* Glass panel over the map: warmer translucency, opaque header, soft radius. */
+.glass {
+  background: var(--panel-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(112%);
+  backdrop-filter: blur(16px) saturate(112%);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+  box-shadow: var(--shadow-ambient);
+  overflow: hidden;
+}
+
+/* Stop ticket: identical geometry for every stop, always. Status is left-border
+   weight + fill tint + ONE pill chip. Dense ops row, so 8px — never 14. */
 .ticket {
   display: block;
   width: 100%;
@@ -267,14 +341,10 @@ a {
   padding: 9px 11px 9px 12px;
   border: none;
   border-left: 2px solid var(--border-strong);
-  border-bottom: var(--hairline) solid var(--border);
+  border-radius: var(--radius-tight);
   background: transparent;
   color: inherit;
   transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
-}
-
-.ticket:last-child {
-  border-bottom: none;
 }
 
 .ticket:hover {
@@ -307,26 +377,34 @@ a {
   box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
-/* Mono chip: every identifier, count and status token. */
+/* Chips are full pills. Sentence case, grotesk — the mono variant is for the
+   ones that carry an identifier. */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 6px;
-  border: var(--hairline) solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  padding: 3px 9px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--field);
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--ink-2);
   white-space: nowrap;
+}
+
+.chip--mono {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.04em;
 }
 
 .chip--accent {
   color: var(--accent);
   border-color: var(--accent-line);
+  background: var(--accent-soft);
 }
 
 .chip--amber {
@@ -344,21 +422,31 @@ a {
 .chip--quiet {
   color: var(--ink-3);
   border-color: var(--border);
+  background: transparent;
 }
 
-/* The ONE display numeral a panel is allowed. Mono, tabular, never mid-size. */
+/* The ONE display numeral a panel is allowed. Grotesk + tabular figures: mono
+   is the document voice and this is a glance anchor, not a record. */
 .numeral {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--type-display);
-  font-weight: 500;
+  font-weight: 600;
   line-height: var(--lh-display);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
 
 .numeral--sm {
   font-size: var(--type-display-sm);
+}
+
+/* Serif only at display moments — the tracking headline, the run-complete
+   screen. Never in dense data. */
+.numeral--serif {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .numeral--accent {
@@ -369,28 +457,44 @@ a {
   color: var(--amber);
 }
 
+/* A serif line for warmth moments that are words rather than numbers. */
+.display {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.display--sm {
+  font-size: 17px;
+}
+
 /* Micro rows — 11–13px only. No middle sizes. */
 .micro {
   font-size: var(--type-micro);
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--ink-2);
 }
 
 .micro--mono {
   font-family: var(--font-mono);
-  letter-spacing: 0.06em;
+  font-size: var(--type-plate);
+  letter-spacing: 0.04em;
 }
 
 .micro--dim {
   color: var(--ink-3);
 }
 
+/* Field label above a value. Sentence case now — the caps/mono label survives
+   inside the compliance document, which re-declares it. */
 .label {
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--ink-3);
 }
 
@@ -401,27 +505,29 @@ a {
   margin: 0;
 }
 
-/* Buttons: flat, bordered, no gradients ever. One primary per screen state. */
+/* Buttons: flat, no gradients ever. One primary per screen state. Tight radius
+   because a button is a control; the driver slab goes soft. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--gap-2);
-  padding: 8px 12px;
+  padding: 7px 13px;
   border: var(--hairline) solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-tight);
   background: var(--panel);
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: var(--type-plate);
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  letter-spacing: 0;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
   border-color: var(--accent-line);
+  color: var(--accent);
 }
 
 .btn:disabled {
@@ -436,19 +542,30 @@ a {
   font-weight: 600;
 }
 
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-ink);
+}
+
 .btn--amber {
-  background: transparent;
+  background: var(--amber-soft);
   border-color: var(--amber);
   color: var(--amber);
 }
 
-/* Driver app: 56px min height, thumb-reach cluster. */
+.btn--amber:hover:not(:disabled) {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* Driver app: 56px min height, thumb-reach cluster, soft radius. */
 .btn--driver {
   width: 100%;
   min-height: 56px;
-  font-size: var(--type-body);
-  letter-spacing: 0.16em;
-  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--radius-soft);
 }
 
 /* Selected-driver pulse. DESIGN: the accent pulses ONLY on the current selection. */
@@ -490,10 +607,10 @@ a {
 .maplibregl-ctrl-attrib {
   background: var(--panel-glass) !important;
   color: var(--ink-3) !important;
-  font-family: var(--font-mono) !important;
-  font-size: 9px !important;
-  letter-spacing: 0.04em;
-  border-radius: var(--radius-sm) 0 0 0;
+  font-family: var(--font-ui) !important;
+  font-size: 9.5px !important;
+  letter-spacing: 0;
+  border-radius: var(--radius-tight) 0 0 0;
 }
 
 .maplibregl-ctrl-attrib a {

@@ -13,14 +13,14 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { formatMoney, PAYMENT_LABEL } from '../format'
+import { formatMoney, PAYMENT_TEXT } from '../format'
 import type { PaymentMethod, Stop } from '../types'
 
 const METHODS: PaymentMethod[] = ['cash', 'debit', 'digital']
 
 /** Reader / link ladders. The last entry is the one that unlocks the slab. */
-const DEBIT_STEPS = ['LINKING READER', 'READER LINKED', 'CARD PRESENTED', 'APPROVED — SIMULATED']
-const DIGITAL_STEPS = ['REQUEST SENT', 'CUSTOMER NOTIFIED', 'CONFIRMED — SIMULATED']
+const DEBIT_STEPS = ['Linking reader', 'Reader linked', 'Card presented', 'Approved — simulated']
+const DIGITAL_STEPS = ['Request sent', 'Customer notified', 'Confirmed — simulated']
 const STEP_MS = 750
 
 export interface PaymentScreenProps {
@@ -83,14 +83,14 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
         <div className="dv-screen">
           <section className="dv-block">
             <div className="plate">
-              <span>CLOSE OUT</span>
-              <span>{stop.orderCode}</span>
+              <span>Close out</span>
+              <span className="plate-id">{stop.orderCode}</span>
             </div>
 
             <div className="dv-block-body">
               <div className="dv-due">
                 <div className="dv-field">
-                  <span className="label">AMOUNT DUE</span>
+                  <span className="label">Amount due</span>
                   {/* the ONE display numeral on this panel */}
                   <span className="numeral">{formatMoney(stop.amountDue)}</span>
                 </div>
@@ -108,7 +108,7 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
                   onClick={() => setMethod(m)}
                   aria-pressed={m === method}
                 >
-                  {PAYMENT_LABEL[m]}
+                  {PAYMENT_TEXT[m]}
                 </button>
               ))}
             </div>
@@ -117,14 +117,16 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
           {method === 'cash' ? (
             <section className="dv-block">
               <div className="plate">
-                <span>CASH TENDERED</span>
-                <span>{changeCents >= 0 ? `CHANGE ${formatMoney(changeCents / 100)}` : 'SHORT'}</span>
+                <span>Cash tendered</span>
+                <span className="plate-id">
+                  {changeCents >= 0 ? `Change ${formatMoney(changeCents / 100)}` : 'Short'}
+                </span>
               </div>
 
               <div className="dv-block-body" style={{ paddingBottom: 0 }}>
                 <div className="dv-due">
                   <div className="dv-field">
-                    <span className="label">TENDER</span>
+                    <span className="label">Tender</span>
                     {/* the ONE display numeral on this panel */}
                     <span
                       className={`numeral${tenderCents >= dueCents ? ' numeral--accent' : ''}`}
@@ -132,10 +134,10 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
                       {formatMoney(tenderCents / 100)}
                     </span>
                   </div>
-                  <span className="micro micro--mono micro--dim">
+                  <span className="micro micro--dim">
                     {tenderCents >= dueCents
-                      ? `CHANGE DUE ${formatMoney(changeCents / 100)}`
-                      : `SHORT ${formatMoney((dueCents - tenderCents) / 100)}`}
+                      ? `Change due ${formatMoney(changeCents / 100)}`
+                      : `Short ${formatMoney((dueCents - tenderCents) / 100)}`}
                   </span>
                 </div>
               </div>
@@ -148,7 +150,7 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
                     className="dv-tender"
                     onClick={() => setTenderCents(cents)}
                   >
-                    {i === 0 ? 'EXACT' : formatMoney(cents / 100)}
+                    {i === 0 ? 'Exact' : formatMoney(cents / 100)}
                   </button>
                 ))}
               </div>
@@ -160,7 +162,7 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
                   </button>
                 ))}
                 <button type="button" className="dv-key dv-key--fn" onClick={() => press('CLR')}>
-                  CLR
+                  Clear
                 </button>
                 <button type="button" className="dv-key" onClick={() => press('0')}>
                   0
@@ -171,15 +173,15 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
                   onClick={() => press('DEL')}
                   aria-label="Delete last digit"
                 >
-                  DEL
+                  Delete
                 </button>
               </div>
             </section>
           ) : (
             <section className="dv-block">
               <div className="plate">
-                <span>{method === 'debit' ? 'CARD READER' : 'DIGITAL REQUEST'}</span>
-                <span>{`REF ${stop.orderCode.replace('MFST-', '')}`}</span>
+                <span>{method === 'debit' ? 'Card reader' : 'Digital request'}</span>
+                <span className="plate-id">{`REF ${stop.orderCode.replace('MFST-', '')}`}</span>
               </div>
               <div className="dv-steps">
                 {ladder.map((name, i) => (
@@ -211,19 +213,19 @@ export function PaymentScreen({ stop, onConfirm, onBack }: PaymentScreenProps) {
           disabled={!ready}
           onClick={() => onConfirm(method)}
         >
-          {`CLOSE — ${PAYMENT_LABEL[method]} ${formatMoney(stop.amountDue)}`}
+          {`Close — ${PAYMENT_TEXT[method]} ${formatMoney(stop.amountDue)}`}
           <span className="dv-slab-hint">
             {method === 'cash'
               ? cashReady
-                ? `CHANGE ${formatMoney(changeCents / 100)}`
-                : 'ENTER TENDER TO CONTINUE'
+                ? `Change ${formatMoney(changeCents / 100)}`
+                : 'Enter tender to continue'
               : ladderReady
-                ? 'READY'
+                ? 'Ready'
                 : (ladder[step] ?? '')}
           </span>
         </button>
         <button type="button" className="dv-quiet" onClick={onBack}>
-          BACK TO TICKET
+          Back to ticket
         </button>
       </footer>
     </>

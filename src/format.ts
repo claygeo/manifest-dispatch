@@ -4,7 +4,7 @@
  * the tracking card and the printed manifest.
  */
 
-import type { PaymentMethod, StopStatus, RunStatus } from './types'
+import type { ExceptionReason, PaymentMethod, StopStatus, RunStatus } from './types'
 
 export function formatMoney(amount: number): string {
   return `$${amount.toFixed(2)}`
@@ -65,6 +65,18 @@ export function firstName(full: string): string {
   return full.trim().split(/\s+/)[0]
 }
 
+/* -------------------------------------------------------------- labels ---
+ *
+ * Two registers, deliberately kept apart (DESIGN.md v2).
+ *
+ *   *_LABEL — the DOCUMENT/RECORD voice: the printable compliance manifest and
+ *             the values written into the event log. Caps is diegetic there and
+ *             those strings are also matched on downstream, so they are stable.
+ *   *_TEXT  — the UI voice: sentence case, what every screen actually renders.
+ *
+ * The two must always mean the same thing. Only the shouting differs.
+ */
+
 export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   cash: 'CASH',
   debit: 'DEBIT',
@@ -86,7 +98,41 @@ export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
   complete: 'COMPLETE',
 }
 
-/** DESIGN: dual-resolution metrics — never a naked numeral. `STOP 3/5`. */
+export const PAYMENT_TEXT: Record<PaymentMethod, string> = {
+  cash: 'Cash',
+  debit: 'Debit',
+  digital: 'Digital',
+}
+
+export const STOP_STATUS_TEXT: Record<StopStatus, string> = {
+  pending: 'Pending',
+  enroute: 'En route',
+  arrived: 'Arrived',
+  id_check: 'ID check',
+  delivered: 'Delivered',
+  exception: 'Exception',
+}
+
+export const RUN_STATUS_TEXT: Record<RunStatus, string> = {
+  staged: 'Staged',
+  active: 'Active',
+  complete: 'Complete',
+}
+
+/**
+ * UI voice for the exception reasons. Mirrors `EXCEPTION_LABEL` in store.ts,
+ * which stays caps because it is what gets written into the event log and read
+ * back by the manifest.
+ */
+export const EXCEPTION_TEXT: Record<ExceptionReason, string> = {
+  no_answer: 'No answer',
+  cannot_verify: 'Cannot verify',
+  refused: 'Refused',
+  address_issue: 'Address issue',
+  cancelled: 'Cancelled',
+}
+
+/** DESIGN: dual-resolution metrics — never a naked numeral. `Stop 3/5`. */
 export function ratioLabel(prefix: string, value: number, ceiling: number): string {
   return `${prefix} ${value}/${ceiling}`
 }

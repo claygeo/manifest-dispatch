@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
-import { formatLngLat, formatMoney, PAYMENT_LABEL } from '../format'
+import { formatLngLat, formatMoney, PAYMENT_TEXT } from '../format'
 import { runCounts } from '../selectors'
 import type { ExceptionReason, PaymentMethod } from '../types'
 
@@ -206,51 +206,55 @@ export function DriverPage() {
   }
 
   function ticketAction(): TicketAction {
-    if (!run || !stop) return { label: 'NO STOP', onPress: () => {}, disabled: true }
+    if (!run || !stop) return { label: 'No stop', onPress: () => {}, disabled: true }
 
     const lastStop = run.currentLeg >= run.stops.length - 1
 
     if (run.status === 'staged') {
       return {
-        label: `DEPART — ${stop.orderCode}`,
-        hint: 'OPENS THE MANIFEST AND STARTS THE RUN',
+        label: `Depart — ${stop.orderCode}`,
+        hint: 'Opens the manifest and starts the run',
         onPress: depart,
       }
     }
 
     switch (stop.status) {
       case 'pending':
-        return { label: `DEPART — ${stop.orderCode}`, hint: 'ROLLING TO THE NEXT DOOR', onPress: depart }
+        return {
+          label: `Depart — ${stop.orderCode}`,
+          hint: 'Rolling to the next door',
+          onPress: depart,
+        }
       case 'enroute':
-        return { label: 'ARRIVED', hint: 'TAP WHEN YOU PULL UP', onPress: arrive }
+        return { label: 'Arrived', hint: 'Tap when you pull up', onPress: arrive }
       case 'arrived':
         return {
-          label: 'VERIFY ID — 21+',
-          hint: 'REQUIRED BEFORE THIS STOP CAN CLOSE',
+          label: 'Verify ID — 21+',
+          hint: 'Required before this stop can close',
           onPress: () => setScreen('id'),
         }
       case 'id_check':
         return {
-          label: `CLOSE — ${PAYMENT_LABEL[stop.payment]}`,
-          hint: `COLLECT ${formatMoney(stop.amountDue)}`,
+          label: `Close — ${PAYMENT_TEXT[stop.payment]}`,
+          hint: `Collect ${formatMoney(stop.amountDue)}`,
           onPress: () => setScreen('pay'),
         }
       case 'delivered':
         return {
-          label: lastStop ? 'RETURN TO DEPOT' : 'NEXT STOP',
-          hint: `${stop.orderCode} CLOSED — ${PAYMENT_LABEL[stop.payment]} ${formatMoney(
+          label: lastStop ? 'Return to depot' : 'Next stop',
+          hint: `${stop.orderCode} closed — ${PAYMENT_TEXT[stop.payment]} ${formatMoney(
             stop.amountDue,
           )}`,
           onPress: advanceQueue,
         }
       case 'exception':
         return {
-          label: lastStop ? 'RETURN TO DEPOT' : 'NEXT STOP',
-          hint: `${stop.orderCode} FLAGGED UNDELIVERABLE`,
+          label: lastStop ? 'Return to depot' : 'Next stop',
+          hint: `${stop.orderCode} flagged undeliverable`,
           onPress: advanceQueue,
         }
       default:
-        return { label: 'NO ACTION', onPress: () => {}, disabled: true }
+        return { label: 'No action', onPress: () => {}, disabled: true }
     }
   }
 
@@ -264,7 +268,7 @@ export function DriverPage() {
   /**
    * The rail reports what is ACTUALLY feeding the map, not what was asked for.
    * A phone that was told to use its GPS and then had permission refused reads
-   * SIM GPS here, with the reason on the line underneath — never a live label
+   * "Sim GPS" here, with the reason on the line underneath — never a live label
    * over a simulated position.
    */
   const simFeed = !liveCode || (gps?.source ?? 'sim') === 'sim'
@@ -274,12 +278,12 @@ export function DriverPage() {
 
   const gpsReadout = !run
     ? liveCode
-      ? 'GPS STANDBY — PICK A RUN'
-      : 'SIM GPS STANDBY'
+      ? 'GPS standby — pick a run'
+      : 'Sim GPS standby'
     : acquiring
-      ? 'GPS ACQUIRING'
-      : `${simFeed ? 'SIM GPS' : 'LIVE GPS'} ${formatLngLat(run.position)}${
-          realFix && accuracyM !== null ? ` ±${accuracyM}M` : ''
+      ? 'GPS acquiring'
+      : `${simFeed ? 'Sim GPS' : 'Live GPS'} ${formatLngLat(run.position)}${
+          realFix && accuracyM !== null ? ` ±${accuracyM} m` : ''
         }`
 
   const gpsNote = liveCode ? (gps?.note ?? null) : null
@@ -332,10 +336,10 @@ export function DriverPage() {
               onClick={release}
               aria-label="Back to run list"
             >
-              &lsaquo; RUNS
+              &lsaquo; Runs
             </button>
           ) : null}
-          <Wordmark subtitle="DRIVER" />
+          <Wordmark subtitle="Driver" />
           <span className="dv-head-spacer" />
           <ThemeToggle />
         </header>
@@ -363,7 +367,7 @@ export function DriverPage() {
                 aria-pressed={gpsSource === 'sim'}
                 title="Play the precomputed route instead of the device's GPS"
               >
-                SIM GPS
+                Sim GPS
               </button>
             ) : null}
           </span>

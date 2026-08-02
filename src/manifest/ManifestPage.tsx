@@ -12,6 +12,11 @@
  * paper with 0.5in margins and survives a browser that refuses to print
  * background graphics (see manifest.css).
  *
+ * DESIGN.md v2 names this surface as the ONE exception to the warm sentence-
+ * case register: inside `.mf-sheet` the ALL-CAPS mono plate voice survives
+ * untouched, and only the paper and ink tones moved to the new neutrals. The
+ * toolbar above the sheet is ordinary app chrome and speaks v2.
+ *
  * Vehicle, seal, agent id and facility address are deterministic fictional
  * values derived from the run id — stable across fleet resets so a printed
  * page and the screen never disagree.
@@ -152,8 +157,8 @@ export function ManifestPage() {
       <div className="mf-root">
         <div className="panel mf-miss">
           <div className="plate">
-            <span>MANIFEST NOT FOUND</span>
-            <span>{runId ? runId.toUpperCase() : '—'}</span>
+            <span>Manifest not found</span>
+            <span className="plate-id">{runId ? runId.toUpperCase() : '—'}</span>
           </div>
           <div className="micro mf-miss-body">
             No run on today&rsquo;s board carries that id. Open a manifest from the dispatch
@@ -161,7 +166,7 @@ export function ManifestPage() {
           </div>
           <div className="mf-runs">
             {runOrder.map((id) => (
-              <Link key={id} className="chip mf-run-link" to={`/manifest/${id}`}>
+              <Link key={id} className="chip chip--mono mf-run-link" to={`/manifest/${id}`}>
                 {runs[id]?.manifestId ?? id}
               </Link>
             ))}
@@ -200,17 +205,18 @@ export function ManifestPage() {
 
   return (
     <div className="mf-root">
+      {/* Screen chrome above the sheet — v2 register, sentence case. */}
       <div className="mf-bar no-print">
-        <Wordmark subtitle="COMPLIANCE" />
+        <Wordmark subtitle="Compliance" />
         <DemoChip />
-        <span className="chip">{`STOPS ${counts.done}/${counts.total} CLOSED`}</span>
+        <span className="chip">{`Stops ${counts.done}/${counts.total} closed`}</span>
         <div className="mf-bar-end">
           <Link className="btn" to="/">
-            BACK TO DISPATCH
+            Back to dispatch
           </Link>
           <ThemeToggle />
           <button type="button" className="btn btn--primary" onClick={() => window.print()}>
-            PRINT MANIFEST
+            Print manifest
           </button>
         </div>
       </div>

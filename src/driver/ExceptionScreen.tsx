@@ -1,8 +1,10 @@
 /**
  * Exception path.
  *
- * SPEC: "Exception path: NO ANSWER / CANNOT VERIFY → logs event, undeliverable
- * state, next."
+ * SPEC: "Exception path: no answer / cannot verify → logs event, undeliverable
+ * state, next." The button text is the UI mirror of the reason; the value
+ * written into the event log stays the caps `EXCEPTION_LABEL` in store.ts,
+ * because that is the record the manifest reads back.
  *
  * The two reasons the spec names are the only two offered — a longer menu would
  * turn a 20-second doorstep decision into a form. Amber lives here and almost
@@ -10,7 +12,7 @@
  * puts work back on a dispatcher.
  */
 
-import { EXCEPTION_LABEL } from '../store'
+import { EXCEPTION_TEXT } from '../format'
 import type { ExceptionReason, Stop } from '../types'
 
 const REASONS: { reason: ExceptionReason; blurb: string }[] = [
@@ -31,12 +33,12 @@ export function ExceptionScreen({ stop, onFlag, onBack }: ExceptionScreenProps) 
         <div className="dv-screen">
           <section className="dv-block">
             <div className="plate plate--amber">
-              <span>UNDELIVERABLE</span>
-              <span>{stop.orderCode}</span>
+              <span>Undeliverable</span>
+              <span className="plate-id">{stop.orderCode}</span>
             </div>
             <div className="dv-block-body">
               <div className="dv-field">
-                <span className="label">STOP</span>
+                <span className="label">Stop</span>
                 <span className="dv-name">{stop.customer}</span>
                 <span className="micro micro--dim">{stop.address}</span>
               </div>
@@ -56,7 +58,7 @@ export function ExceptionScreen({ stop, onFlag, onBack }: ExceptionScreenProps) 
                 className="btn btn--amber btn--driver dv-slab"
                 onClick={() => onFlag(reason)}
               >
-                {EXCEPTION_LABEL[reason]}
+                {EXCEPTION_TEXT[reason]}
                 <span className="dv-slab-hint">{blurb}</span>
               </button>
             ))}
@@ -66,7 +68,7 @@ export function ExceptionScreen({ stop, onFlag, onBack }: ExceptionScreenProps) 
 
       <footer className="dv-foot">
         <button type="button" className="btn btn--driver dv-slab" onClick={onBack}>
-          KEEP WORKING THIS STOP
+          Keep working this stop
         </button>
       </footer>
     </>

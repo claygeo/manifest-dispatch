@@ -30,13 +30,13 @@ export function IdCheckScreen({ stop, onPass, onFail }: IdCheckScreenProps) {
         <div className="dv-screen">
           <section className="dv-block">
             <div className="plate">
-              <span>ID CHECK — REQUIRED</span>
-              <span>{stop.orderCode}</span>
+              <span>ID check — required</span>
+              <span className="plate-id">{stop.orderCode}</span>
             </div>
 
             <div className="dv-block-body">
               <div className="dv-field">
-                <span className="label">NAME ON ID</span>
+                <span className="label">Name on ID</span>
                 <span className="dv-name">{stop.customer}</span>
               </div>
 
@@ -44,12 +44,12 @@ export function IdCheckScreen({ stop, onPass, onFail }: IdCheckScreenProps) {
 
               <div className="dv-due">
                 <div className="dv-field">
-                  <span className="label">DATE OF BIRTH</span>
+                  <span className="label">Date of birth</span>
                   <span className="dv-value-mono">{id.dob}</span>
                 </div>
                 {/* the ONE display numeral on this panel */}
                 <div style={{ textAlign: 'right' }}>
-                  <div className="label">AGE</div>
+                  <div className="label">Age</div>
                   <div className="numeral numeral--sm">{id.age}</div>
                 </div>
               </div>
@@ -58,21 +58,21 @@ export function IdCheckScreen({ stop, onPass, onFail }: IdCheckScreenProps) {
 
               <div className="dv-row">
                 <div className="dv-field">
-                  <span className="label">MMU REGISTRY</span>
+                  <span className="label">MMU registry</span>
                   <span className="dv-value-mono">{id.registryId}</span>
                 </div>
                 <div className="dv-field" style={{ textAlign: 'right' }}>
-                  <span className="label">EXPIRES</span>
+                  <span className="label">Expires</span>
                   <span className="dv-value-mono">{id.cardExpiry}</span>
                 </div>
               </div>
 
               <div className="dv-row">
                 <div className="dv-field">
-                  <span className="label">PHOTO ID</span>
-                  <span className="dv-value-mono">{`${id.idState} DRIVER LICENSE`}</span>
+                  <span className="label">Photo ID</span>
+                  <span className="dv-value-mono">{`${id.idState} driver license`}</span>
                 </div>
-                <span className="chip chip--quiet">NO CAMERA</span>
+                <span className="chip chip--quiet">No camera</span>
               </div>
             </div>
           </section>
@@ -87,11 +87,11 @@ export function IdCheckScreen({ stop, onPass, onFail }: IdCheckScreenProps) {
       <footer className="dv-foot">
         <div className="dv-verdict">
           <button type="button" className="btn btn--primary btn--driver dv-yes" onClick={onPass}>
-            21+ CONFIRMED — MATCHES
-            <span className="dv-slab-hint">ID VERIFIED, PROCEED TO PAYMENT</span>
+            21+ confirmed — matches
+            <span className="dv-slab-hint">ID verified, proceed to payment</span>
           </button>
           <button type="button" className="btn btn--amber btn--driver dv-no" onClick={onFail}>
-            CANNOT VERIFY
+            Cannot verify
           </button>
         </div>
       </footer>

@@ -5,23 +5,23 @@
  * in Maps app), items, AMOUNT DUE $84.50, payment method chip, delivery window,
  * mono orderCode."
  *
- * Laid out as a document rather than a card: plate header, mono identifiers,
- * one display numeral (the amount), a tear-off edge. Above it, the four-segment
- * state ladder — the answer to "a driver who has never seen software must never
- * wonder what to press next": the ladder says where they are, the slab at
- * thumb height says what to do, and there is never a second thing competing
- * with it.
+ * Laid out as a receipt rather than a card: a sentence-case section header with
+ * the order code trailing it in mono, one display numeral (the amount), a
+ * tear-off edge. Above it, the four-segment state ladder — the answer to "a
+ * driver who has never seen software must never wonder what to press next": the
+ * ladder says where they are, the soft slab at thumb height says what to do,
+ * and there is never a second thing competing with it.
  */
 
 import { LegStrip } from './LegStrip'
 import { useStore } from '../store'
 import { windowLabel, windowState } from '../selectors'
-import { formatMoney, PAYMENT_LABEL, STOP_STATUS_LABEL } from '../format'
+import { formatMoney, PAYMENT_TEXT, STOP_STATUS_TEXT } from '../format'
 import type { Run, Stop, StopStatus } from '../types'
 
 type StepState = 'todo' | 'now' | 'done' | 'flag'
 
-const LADDER: readonly string[] = ['EN ROUTE', 'ARRIVED', 'ID CHECK', 'CLOSED']
+const LADDER: readonly string[] = ['En route', 'Arrived', 'ID check', 'Closed']
 
 /** The one primary action this screen state allows. */
 export interface TicketAction {
@@ -98,13 +98,13 @@ export function StopTicket({
         <div className="dv-pad-x">
           <article className="dv-receipt">
             <div className="plate">
-              <span>{`STOP ${seq}/${total}`}</span>
-              <span>{stop.orderCode}</span>
+              <span>{`Stop ${seq}/${total}`}</span>
+              <span className="plate-id">{stop.orderCode}</span>
             </div>
 
             <div className="dv-receipt-body">
               <div>
-                <div className="label">CUSTOMER</div>
+                <div className="label">Customer</div>
                 <div className="dv-name">{stop.customer}</div>
                 <a
                   className="dv-nav"
@@ -114,14 +114,16 @@ export function StopTicket({
                   aria-label={`Open ${stop.address} in Maps`}
                 >
                   <span className="dv-nav-addr">{stop.address}</span>
-                  <span className="dv-nav-go">NAVIGATE &rsaquo;</span>
+                  <span className="dv-nav-go">Navigate &rsaquo;</span>
                 </a>
               </div>
 
               <div className="dv-tear" />
 
               <div>
-                <div className="label">{`ORDER — ${run.manifestId}`}</div>
+                <div className="label">
+                  Order <span className="micro--mono">{run.manifestId}</span>
+                </div>
                 <div className="dv-items">
                   {stop.items.map((item) => (
                     <div className="dv-item" key={item.name}>
@@ -136,21 +138,21 @@ export function StopTicket({
 
               <div className="dv-due">
                 <div>
-                  <div className="label">AMOUNT DUE</div>
+                  <div className="label">Amount due</div>
                   {/* the ONE display numeral on this ticket */}
                   <div className="numeral">{formatMoney(stop.amountDue)}</div>
                 </div>
                 <div className="dv-chips">
-                  <span className="chip chip--solid">{PAYMENT_LABEL[stop.payment]}</span>
+                  <span className="chip chip--solid">{PAYMENT_TEXT[stop.payment]}</span>
                   <span className={`chip${late ? ' chip--amber' : ' chip--quiet'}`}>
-                    {late ? `LATE ${windowLabel(stop)}` : windowLabel(stop)}
+                    {late ? `Late · ${windowLabel(stop)}` : windowLabel(stop)}
                   </span>
                   <span
                     className={`chip${
                       stop.status === 'exception' ? ' chip--amber' : ' chip--accent'
                     }`}
                   >
-                    {STOP_STATUS_LABEL[stop.status]}
+                    {STOP_STATUS_TEXT[stop.status]}
                   </span>
                 </div>
               </div>
@@ -167,7 +169,7 @@ export function StopTicket({
             stop={stop}
             /* An ETA only means something while the van is still rolling. */
             etaMin={stop.status === 'enroute' ? stop.etaMin : null}
-            label={run.label.toUpperCase()}
+            label={run.label}
             accuracyM={accuracyM}
           />
         </div>
@@ -185,7 +187,7 @@ export function StopTicket({
         </button>
         {onReportIssue ? (
           <button type="button" className="dv-quiet" onClick={onReportIssue}>
-            CAN&rsquo;T COMPLETE THIS STOP
+            Can&rsquo;t complete this stop
           </button>
         ) : null}
       </footer>

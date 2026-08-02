@@ -7,9 +7,9 @@
  *
  * This dialog owns the console half of that handshake and hands the code to
  * `onEnterLive`. It never claims a connection it does not have: until a real
- * transport reports back, the armed state reads WAITING FOR DRIVER, and the
- * honesty rail keeps saying DEMO FLEET because the sim is still what is on the
- * map.
+ * transport reports back, the armed state reads "Waiting for driver phone", and
+ * the honesty rail keeps saying "Demo fleet" because the sim is still what is
+ * on the map.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -34,10 +34,18 @@ export interface LiveEntryModalProps {
 }
 
 const STATUS_LINE: Record<LiveStatus, string> = {
-  off: 'NO SESSION ARMED',
-  connecting: 'WAITING FOR DRIVER PHONE',
-  connected: 'DRIVER PUBLISHING GPS',
-  degraded: 'TRANSPORT UNREACHABLE — DEMO DATA STILL SHOWN',
+  off: 'No session armed',
+  connecting: 'Waiting for driver phone',
+  connected: 'Driver publishing GPS',
+  degraded: 'Transport unreachable — demo data still shown',
+}
+
+/** Sentence-case mirror of the store's status enum, for the status pill. */
+const STATUS_CHIP: Record<LiveStatus, string> = {
+  off: 'Off',
+  connecting: 'Connecting',
+  connected: 'Connected',
+  degraded: 'Degraded',
 }
 
 export function LiveEntryModal({
@@ -105,7 +113,7 @@ export function LiveEntryModal({
         aria-label="Enter live session"
       >
         <div className="plate">
-          <span>LIVE SESSION</span>
+          <span>Live session</span>
           <button
             type="button"
             className="dc-plate-btn"
@@ -150,15 +158,15 @@ export function LiveEntryModal({
               onClick={() => setCode(generateSessionCode())}
               disabled={armed}
             >
-              GENERATE
+              Generate
             </button>
             {armed ? (
               <button type="button" className="btn" onClick={onDisarm}>
-                DISARM
+                Disarm
               </button>
             ) : (
               <button type="button" className="btn btn--primary" onClick={submit} disabled={!valid}>
-                ARM SESSION
+                Arm session
               </button>
             )}
           </div>
@@ -175,7 +183,7 @@ export function LiveEntryModal({
                     : 'chip chip--quiet'
               }
             >
-              {liveStatus.toUpperCase()}
+              {STATUS_CHIP[liveStatus]}
             </span>
             <span className="micro micro--dim">{STATUS_LINE[liveStatus]}</span>
           </div>
@@ -185,7 +193,7 @@ export function LiveEntryModal({
               <div className="dc-joinlink">
                 <span className="micro micro--mono">{joinUrl}</span>
                 <button type="button" className="btn dc-btn-xs" onClick={copyJoinUrl}>
-                  {copied ? 'COPIED' : 'COPY'}
+                  {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
               <p className="micro micro--dim" style={{ margin: 0 }}>
