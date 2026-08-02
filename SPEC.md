@@ -167,6 +167,51 @@ consumable with zero interaction beyond scrolling, on phone or desktop:
 6. Scroll behavior must be cheap: sections lazy-mount their embeds; the page
    never drops the hero map's frame budget; works with reduced-motion set.
 
+## Route planning sandbox `/plan` + sequencing philosophy (operator directives 2026-08-02)
+
+Domain truth from the operator's own delivery ops: stores serve a ZONE; orders
+arrive from all corners; suggested stop orders are sometimes wrong; local
+drivers know shortcuts; Sweed allowed no route adjustment at all (a real pain
+point); free drag-and-drop is also wrong ("freedom and responsibility" = blame
+chaos). Manifest's position, in product form:
+
+1. **Suggest, allow bounded adjustment, quantify, log.** The system proposes a
+   sequence (nearest-neighbor + 2-opt over the precomputed leg matrix —
+   deterministic, client-side, instant at n≤11). The dispatcher may nudge stop
+   order on STAGED runs only. The UI always shows the human order's total
+   drive time NEXT TO the suggested order's ("Yours: 38 min · Suggested: 41")
+   so local knowledge is measured, not argued. Every resequence writes a
+   DeliveryEvent (who-did-what audit line, visible on the manifest).
+2. **Same-day feasibility.** "Can this order get on a route today?" is answered
+   with arithmetic: remaining driver time + per-stop service time + leg matrix
+   + delivery windows → "fits Run C, adds ~9 min" or "does not fit today —
+   first window tomorrow." Travel times are static estimates in the demo and
+   labeled as such; live traffic is a production integration (PRODUCTION.md).
+3. **`/plan` — the visitor's live demo.** Pick stops from the pending order
+   pool, see the suggested sequence + total time on the map, nudge the order
+   (watch the delta), dispatch, and watch YOUR run drive. Guardrails visible.
+   Data: `data/matrix.json` — full directed pairwise legs (depot + all seeded
+   stops) precomputed once from OSRM at build time. NEVER call OSRM at runtime.
+
+**Testing bar (operator: "route building needs to be solid — all of it"):**
+the sequencing/feasibility engine ships with unit tests to the same standard
+as the rest of the suite — 2-opt output never worse than its input order and
+never worse than naive nearest-neighbor; optimizer is deterministic; matrix
+integrity (every directed pair present, durations positive, coords contiguous
+with node positions); feasibility rejects window-impossible insertions and
+accepts provably-fitting ones (fixture cases both ways); degenerate inputs
+(0, 1, all stops; duplicate selection) never crash or hang; resequence events
+always logged. The /plan UI flow gets a Playwright pass before deploy.
+
+## Story page addendum: "How it works" section
+
+Between the compliance section and the measured-proof section: a plain-language
+mechanism section for the "okay but how does it work" reader — the POS hands
+off the packed order (integration layer, not a POS replacement) → Manifest owns
+dispatch/tracking/compliant handoff → every action becomes the audit record →
+one diagram-like strip (POS → Manifest → driver/customer/manifest), DESIGN v2
+register, no jargon soup.
+
 ## Non-goals (cut by decision — do not build)
 
 Camera/hardware hooks; route optimization builder (reordering is enough); real
