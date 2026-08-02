@@ -38,25 +38,29 @@ stays. Weights and case do the softening.
 
 ## Palette
 
-One warm neutral field, ONE primary action hue (sage/forest — quietly right for
-the industry without leaf cliché), terracotta as brand warmth, amber reserved for
-actionable exceptions. Teal is dead.
+NOT the Claude palette — the fonts are the only Claude borrow. The palette is
+**derived from the map**: the UI is a tonal extension of the basemap so panels
+and cartography read as one object, plus exactly ONE accent hue. Simple by rule:
+two neutral ramps (light/dark), one green, amber for exceptions. Nothing else
+carries chroma.
 
-### Light — "Sunrise paper" (default)
-- Field: `#F5F1EA` page/land · cards `#FFFFFF` · borders `#E4DCCE`
-- Map: land `#F3EEE5`, water `#DFE5E0`, parks `#E8EDE2`, roads white ramps,
-  labels warm grey — cream cartography, softer than v1's ink-and-paper
-- Ink: `#2A2620` primary · `#6B6459` secondary · `#A39B8D` disabled
-- **Primary action (sage/forest): `#3F6F51`** — buttons, active routes, live
-  drivers, en-route states. Hover `#356044`. Positive/delivered: `#7A9B76`.
-- **Terracotta warmth: `#D97757`** — wordmark, customer-facing accents, selected
-  driver/stop glow, secondary CTAs. Never the ops primary.
-- Exceptions: `#B26F1D` amber, actionable only.
+### Light — "Paper" (default)
+- Field: `#F4F1EA` page · cards `#FFFFFF` · borders `#E3DED2`
+- Map: land `#F2EEE4`, water `#DDE3DE`, parks `#E6EBDF`, roads white ramps,
+  labels warm grey — the UI field IS the land tone one step up
+- Ink: `#262521` primary · `#6E6759` secondary · `#A69E8F` disabled
+- **Accent (fern): `#4E7A5A`** — the only action/live hue: buttons, active
+  routes, live drivers, en-route states, selection glow. Hover `#426A4E`.
+  Delivered/positive dims to `#83A28C`. The map's park/vegetation tones echo
+  this family, which is what makes the accent feel native rather than branded.
+- Exceptions: `#B57023` amber, actionable only.
 
-### Dark — "Warm charcoal" (Claude dark, not phosphor night)
-- Field: `#262624` page/land · cards `#30302E` · borders `#3E3C38` · map water `#1E1E1C`
-- Ink: `#F0EDE6` / `#B8B2A6` / `#807A6E`
-- Primary sage `#7FB08A` · terracotta `#E08B6D` · amber `#E8A33D`
+### Dark — "Moss night"
+Not Claude charcoal, not phosphor: a deep neutral with a faint green undertone,
+so the night map and the panels share one atmosphere.
+- Field: `#232622` page/land · cards `#2C302B` · borders `#3A3E38` · map water `#1C1F1B`
+- Ink: `#EDEEE7` / `#AEB2A6` / `#767B6E`
+- Accent fern `#8FBF9A` · amber `#E0A24A`
 
 State on identical components stays border+fill treatment (never new shapes or
 extra colors). Delivered dims to field values — no celebration green.
@@ -81,8 +85,9 @@ Dual radius, per the density rule:
 - **Dual-resolution metrics:** keep (`Stop 3/4`, value/ceiling pairs), pills now.
 - **Event feed:** stays a tight transcript; mono timestamps stay.
 - **ETA drift:** inline `4:12 → 4:19` stays.
-- **Buttons:** primary = sage fill, white text, 14px radius, 56px+ on driver.
-  Secondary = warm outline. Terracotta only on customer surface CTAs.
+- **Buttons:** primary = fern fill, white text, 14px radius, 56px+ on driver.
+  Secondary = warm neutral outline. One accent everywhere — customer surfaces
+  included; warmth comes from the neutrals and the serif, not a second hue.
 - **Glass panels:** slightly warmer translucency over the map; opaque headers.
 
 ## Motion
@@ -95,8 +100,8 @@ Unchanged: metabolic, not performative. Lerped driver glide, ticking numerals,
 Driver: same POS ticket-first flow; the friendliest surfaces in the app —
 sentence-case microcopy ("Tap when you pull up"), big soft primary button,
 serif moment on the run-complete screen. Customer tracking: the most
-Claude-like surface — cream card, serif "Arriving by" headline, terracotta
-accents, zero chrome.
+welcoming surface — paper card, serif "Arriving by" headline, fern accents,
+zero chrome.
 
 ## Compliance manifest document
 
@@ -113,7 +118,7 @@ fictional-data footer on customer surface. Friendlier casing, same honesty.
 
 - [ ] Basemap re-shaded through v2 values — zero default-OSM colors, zero v1 teal
 - [ ] One display-size numeral max per panel (unchanged)
-- [ ] Terracotta appears on ZERO ops primary actions; sage owns actions
+- [ ] Exactly ONE accent hue in the app (fern) — no second brand color anywhere
 - [ ] Amber only on actionable exceptions
 - [ ] ALL-CAPS mono headers only inside the printable manifest
 - [ ] Serif only at display moments — never in dense data
