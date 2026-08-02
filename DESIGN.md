@@ -1,101 +1,122 @@
-# Manifest — Design System
+# Manifest — Design System v2 ("warm professional")
 
-Manifest is delivery dispatch software for dispensaries. The design register is
-**instrument, not dashboard** — a piece of ops equipment the way a POS terminal or a
-two-way radio is equipment. Every decision below exists to kill the default
-"AI-styled admin template" look. Deviations require explicit approval.
+v2 direction (operator call, 2026-08-02): v1's instrument/control-room register read
+as technical-heavy. Manifest should feel like the Claude desktop app feels — warm
+paper, friendly type, soft edges — while staying a credible tool for a
+controlled-substance delivery operation. The rule that governs every decision:
 
-## The one big idea: the map is the page
+**Friendliness is a surface, not a density.** Chrome, cards, customer pages, and
+empty states are soft and warm. Operational data (stop lists, tables, tickets,
+the event feed) stays tight, scannable, and calm. No pastel data fills, no
+playful motion, no emoji, no toy energy.
 
-The dispatch console has NO app chrome hosting a map widget. The map IS the viewport,
-full-bleed, and every control floats over it as a translucent panel. (Clayton's own
-words about the best delivery UI he used: "the whole page was the map and the menu
-where filled out stuff was there and mini.")
+## The one big idea: the map is still the page
 
-**The map must wear our palette.** MapLibre basemap style is custom-authored in our
-restricted values — light mode reads as ink-on-paper cartography, dark mode as a
-single-phosphor night console. If the basemap looks like Google Maps or default OSM,
-it is wrong. Roads, water, parks, labels: all re-shaded through the ramps below.
-
-## Palette
-
-Two themes, same logic: a desaturated field, ONE live accent, ONE deviation color.
-Nothing else is allowed to carry chroma. If everything glows, nothing glows.
-
-### Dark (night console — default when OS prefers dark)
-- Field: `#0D1214` (page/map water), `#131A1D` (land), `#1A2327` (panels), `#243036` (borders)
-- Ink: `#E8F1F2` primary, `#8FA6AB` secondary, `#54696F` disabled
-- Live accent (teal phosphor): `#39D0C4` — moving drivers, active routes, live ETAs, primary buttons
-- Deviation (amber): `#E8A33D` — exceptions ONLY: late stops, failed ID checks, connectivity loss
-- Delivered/complete: dim to field values, never green-celebrate
-
-### Light (paper manifest)
-- Field: `#F4F2EC` (page/map land), `#E9E6DD` (water/parks), `#FFFFFF` (panels), `#D8D3C4` (borders)
-- Ink: `#1C2326` primary, `#5C6A6E` secondary, `#9AA6A9` disabled
-- Live accent: `#0E8C82` (deep teal — same hue family, print-legible)
-- Deviation: `#B26F1D`
-
-State is never a new color: pending/active/complete render as border + fill treatments
-of the SAME component (BotW rule). Amber is reserved for things a dispatcher must act on.
+Unchanged from v1: the dispatch console has no app chrome hosting a map widget —
+the map IS the viewport, controls float over it. The basemap must wear OUR
+palette (re-authored MapLibre style, both themes). If it looks like default OSM
+or Google Maps, it is wrong.
 
 ## Typography
 
-- UI: **IBM Plex Sans** (weights 400/500/600). NOT Inter — Inter is the template tell.
-- Data & identifiers: **IBM Plex Mono** — order numbers, manifest IDs, timestamps,
-  coordinates, plate-header labels. Manifests are legal documents; monospace is the
-  document register.
-- Scale is bimodal (Psycho-Pass rule): each panel gets AT MOST ONE display-size number
-  (28–40px). Everything else is 11–13px micro rows. No middle sizes. Sweeping the
-  console reads system state as a row of big numerals.
+Claude's actual faces (Styrene B, Tiempos) are commercial and cannot ship. We use
+their closest open twins, self-hosted via Fontsource:
+
+- **UI: Familjen Grotesk** (400/500/600/700) — all interface text. Sentence case
+  by default; the v1 wall-to-wall ALL-CAPS mono headers are gone.
+- **Display serif: Source Serif 4** (500/600) — the warmth register, used
+  sparingly and deliberately: page/wordmark moments, the customer tracking
+  headline ("Arriving by 1:01 PM"), empty states, the run panel's one display
+  numeral may pair with a serif label. Never for dense data.
+- **Mono: IBM Plex Mono** (400/500) — compliance artifacts only: order codes,
+  manifest IDs, timestamps, coordinates, the printable manifest document. Mono is
+  the *document* voice, not the UI voice.
+
+Scale keeps v1's glance-anchor discipline (each panel: at most ONE display-size
+number, supporting data small) — that's information design, not styling, and it
+stays. Weights and case do the softening.
+
+## Palette
+
+One warm neutral field, ONE primary action hue (sage/forest — quietly right for
+the industry without leaf cliché), terracotta as brand warmth, amber reserved for
+actionable exceptions. Teal is dead.
+
+### Light — "Sunrise paper" (default)
+- Field: `#F5F1EA` page/land · cards `#FFFFFF` · borders `#E4DCCE`
+- Map: land `#F3EEE5`, water `#DFE5E0`, parks `#E8EDE2`, roads white ramps,
+  labels warm grey — cream cartography, softer than v1's ink-and-paper
+- Ink: `#2A2620` primary · `#6B6459` secondary · `#A39B8D` disabled
+- **Primary action (sage/forest): `#3F6F51`** — buttons, active routes, live
+  drivers, en-route states. Hover `#356044`. Positive/delivered: `#7A9B76`.
+- **Terracotta warmth: `#D97757`** — wordmark, customer-facing accents, selected
+  driver/stop glow, secondary CTAs. Never the ops primary.
+- Exceptions: `#B26F1D` amber, actionable only.
+
+### Dark — "Warm charcoal" (Claude dark, not phosphor night)
+- Field: `#262624` page/land · cards `#30302E` · borders `#3E3C38` · map water `#1E1E1C`
+- Ink: `#F0EDE6` / `#B8B2A6` / `#807A6E`
+- Primary sage `#7FB08A` · terracotta `#E08B6D` · amber `#E8A33D`
+
+State on identical components stays border+fill treatment (never new shapes or
+extra colors). Delivered dims to field values — no celebration green.
+
+## Shape & depth
+
+Dual radius, per the density rule:
+- **Soft (14px):** cards, panels, modals, customer tracking card, driver primary
+  buttons, empty states. Chips are full pills.
+- **Tight (8px):** dense ops rows — stop tickets, table rows, feed entries,
+  small controls.
+- Shadows: two soft layers (ambient + key), low opacity, warm-tinted. No hairline
+  1px-only austerity, no heavy drops.
 
 ## Components
 
-- **Plate headers** (Signalis): every panel/section title is an inverted plate — filled
-  bar, background-color text, mono, uppercase, letterspaced. `RUN A — SOUTH TAMPA`.
-  Panels are boxed; nothing floats unboxed over the map.
-- **Stop tickets** (BotW neutral shelf): identical geometry for every stop card. Status
-  = left border weight + fill tint + a small mono chip. Never resize, never re-color
-  the whole card, no badges piling up.
-- **Dual-resolution metrics** (Umamusume): every count shows chip + value/ceiling:
-  `STOP 3/5`, `RUNS 2/3 ACTIVE`. No naked numerals.
-- **Event feed**: delivery events (departed, arrived, ID VERIFIED, closed — CASH) as a
-  chat-transcript-style timeline, newest on top, mono timestamps.
-- **ETA drift** rendered inline as `4:12 → 4:19` with an arrow — no red/green diff badges.
-- **Glass panels**: translucent (backdrop-blur) over the map, opaque plate headers.
-  Radius 6px, hairline borders. No shadows deeper than 1px hairline + subtle ambient.
+- **Section headers:** sentence-case Familjen 600 with a small mono suffix where
+  an ID belongs ("Run A — South Tampa" + `MAN-2026-0802-A`). The v1 inverted
+  black plate bars survive ONLY in the printable manifest document.
+- **Stop tickets:** unchanged geometry discipline (identical cards, status =
+  left border + tint + one pill chip), re-toned to the new palette, 8px radius.
+- **Dual-resolution metrics:** keep (`Stop 3/4`, value/ceiling pairs), pills now.
+- **Event feed:** stays a tight transcript; mono timestamps stay.
+- **ETA drift:** inline `4:12 → 4:19` stays.
+- **Buttons:** primary = sage fill, white text, 14px radius, 56px+ on driver.
+  Secondary = warm outline. Terracotta only on customer surface CTAs.
+- **Glass panels:** slightly warmer translucency over the map; opaque headers.
 
 ## Motion
 
-Metabolic, not performative (the machine breathing): drivers glide via lerp between
-GPS/sim points with heading rotation; ETA numerals tick; the live accent pulses ONLY
-on the currently-selected driver. No entrance animations, no bouncing, no confetti on
-delivery. 150ms ease-out on panel state changes, nothing longer than 250ms.
+Unchanged: metabolic, not performative. Lerped driver glide, ticking numerals,
+150–250ms ease-out transitions. Softness comes from color and shape, not bounce.
 
-## Driver app (phone)
+## Driver app & customer page
 
-Same system, but ticket-first instead of map-first: the current stop is a full-screen
-POS ticket (one glance = who, address, items, amount due, payment method). The map is
-the mini element here — inverted from the console. Buttons are 56px min height,
-thumb-reach bottom cluster, one primary action per screen state. A driver who has
-never seen software must never wonder what to press next.
+Driver: same POS ticket-first flow; the friendliest surfaces in the app —
+sentence-case microcopy ("Tap when you pull up"), big soft primary button,
+serif moment on the run-complete screen. Customer tracking: the most
+Claude-like surface — cream card, serif "Arriving by" headline, terracotta
+accents, zero chrome.
 
-## Customer tracking page
+## Compliance manifest document
 
-One card + the map. Driver position, stops-away chip (`2 STOPS AWAY`), ETA window,
-order summary. No account, no chrome, loads in under a second on 4G.
+Deliberately formal: mono, plate headers, signature rules — it is a legal
+artifact and its seriousness is diegetic. Warm the paper tone, change nothing
+else. The contrast between friendly app and formal document is the point.
 
 ## Honesty rail
 
-Demo state is labeled `DEMO FLEET` in a mono chip, top-left, always visible in demo
-mode. Simulated GPS in the driver app shows `SIM GPS`. We never dress simulation as
-production traffic — the label is part of the credibility story, not a disclaimer.
+Unchanged: `Demo fleet` pill always visible in demo mode, `Sim GPS` labeled,
+fictional-data footer on customer surface. Friendlier casing, same honesty.
 
 ## Anti-slop checklist (QA gate)
 
-- [ ] Basemap re-shaded through our values (NieR rule) — zero default-OSM colors
-- [ ] One display-size numeral max per panel
-- [ ] Zero gradient buttons, zero emoji in UI, zero purple-on-white template look
-- [ ] Amber appears ONLY on actionable exceptions
-- [ ] Plate headers everywhere a section starts
-- [ ] Mono for every identifier and timestamp
-- [ ] Dark AND light verified on the actual map, not just panels
+- [ ] Basemap re-shaded through v2 values — zero default-OSM colors, zero v1 teal
+- [ ] One display-size numeral max per panel (unchanged)
+- [ ] Terracotta appears on ZERO ops primary actions; sage owns actions
+- [ ] Amber only on actionable exceptions
+- [ ] ALL-CAPS mono headers only inside the printable manifest
+- [ ] Serif only at display moments — never in dense data
+- [ ] Dual radius respected (soft cards / tight data)
+- [ ] No emoji, no pastel data fills, no bounce
+- [ ] Dark AND light verified ON the map, not just panels
