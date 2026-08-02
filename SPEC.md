@@ -154,3 +154,30 @@ payments; accounts/auth; multi-depot; Sweed API integration (positioning only �
 - Zero console errors; works in Chrome + mobile Safari viewport.
 - README: product story (the Sweed gap, integration-layer positioning), architecture,
   honest demo-vs-live caveats, screenshots both themes.
+
+## Production-adaptability bar (operator directive 2026-08-02)
+
+This is not a throwaway demo. Target: "could be used in production in a month if
+fine-tuned." That means:
+
+- **Tests are a deliverable.** Vitest suite covering: sim engine determinism and
+  state transitions; store actions (the same actions live mode feeds); the driver
+  flow's legal ordering (arrived → id_check → closed is enforced, closing without
+  ID verification is impossible, exception paths always land in a consistent
+  state); ETA recompute math. SQL tests for the Supabase RPCs (session-code gating,
+  event cap, unknown-code writes rejected). `npm test` green in CI.
+- **Edge cases are handled states, not TODOs:** order cancelled after dispatch
+  (stop drops from run, manifest annotated); undeliverable (no answer / failed ID);
+  driver connectivity loss in live mode (events queue locally, honest reconnect
+  banner, no silent data loss); out-of-window arrival (flagged, logged, still
+  completable — reality beats theory in the field).
+- **PRODUCTION.md** documents the one-month path honestly: per-subsystem
+  "production-grade today vs demo-grade today" table, then the ordered gap list —
+  POS order ingestion (webhook/API instead of seeded data), auth + role model
+  (dispatcher/driver/admin), fleet/driver onboarding, manifest retention & audit
+  requirements, payment-terminal integration boundary (debit reader stays OUT of
+  scope but the closeout interface is designed for it), state-regulation
+  configurability beyond FL.
+- Error handling: every network call in live mode has a failure state the user can
+  see and recover from; the app never white-screens on bad data (error boundaries
+  on each surface).
