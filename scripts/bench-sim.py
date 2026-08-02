@@ -47,6 +47,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 try:
     from playwright.sync_api import sync_playwright
@@ -110,30 +111,62 @@ def summarize(frames: list[float]) -> dict:
 
 
 def wait_for_port(port: int, timeout_s: float = 40.0) -> bool:
+    """
+    Poll until something accepts on `port`.
+
+    Both address families, deliberately: `vite preview` binds localhost, which on
+    Windows resolves to ::1 only. An AF_INET-only probe therefore reports "never
+    came up" against a server that is up and serving, so the readiness check has
+    to ask the resolver the same question the browser will.
+    """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(0.5)
-            if sock.connect_ex(("127.0.0.1", port)) == 0:
-                return True
+        try:
+            infos = socket.getaddrinfo("localhost", port, type=socket.SOCK_STREAM)
+        except socket.gaierror:
+            infos = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", port))]
+        for family, socktype, proto, _canon, addr in infos:
+            with socket.socket(family, socktype, proto) as sock:
+                sock.settimeout(0.5)
+                if sock.connect_ex(addr) == 0:
+                    return True
         time.sleep(0.3)
     return False
 
 
 def fleet_probe(page) -> dict:
-    """Cheap liveness read straight off the rendered console."""
+    """
+    Cheap liveness read straight off the rendered console.
+
+    Run status is NOT printed as text anywhere in the panel header (`.plate >
+    span` is the manifest id), so status is derived from the one element whose
+    wording is a function of it: the single display numeral's label, which
+    src/console/RunPanel.tsx sets to 'Planned · min' when staged, 'Next stop ·
+    min' when active and 'Run closed' when complete. Everything else here is
+    matched case-insensitively — the DOM carries sentence case ('Dispatch run',
+    'Stop 2/4') and CSS does the uppercasing.
+    """
     return page.evaluate(
         """
         () => {
-          const text = (sel) => Array.from(document.querySelectorAll(sel)).map(n => n.textContent.trim());
+          const txt = (n) => (n.textContent || '').trim();
+          const panels = Array.from(document.querySelectorAll('[data-sel-id^="run:"]'));
+          const statusOf = (panel) => {
+            const label = txt(panel.querySelector('.dc-run__eta .label')).toLowerCase();
+            if (label.startsWith('next stop')) return 'active';
+            if (label.startsWith('planned')) return 'staged';
+            if (label.startsWith('run closed')) return 'complete';
+            return 'unknown';
+          };
           return {
-            runPanels: document.querySelectorAll('[data-sel-id^="run:"]').length,
-            statuses: text('[data-sel-id^="run:"] .plate > span'),
-            stopChips: text('.chip').filter(t => t.startsWith('STOP ')),
-            etas: text('.numeral'),
+            runPanels: panels.length,
+            statuses: panels.map(statusOf),
+            stopChips: Array.from(document.querySelectorAll('.chip'))
+              .map(txt).filter((t) => /^stop /i.test(t)),
+            etas: Array.from(document.querySelectorAll('.numeral')).map(txt),
             feedRows: document.querySelectorAll('.dc-ev').length,
             dispatchButtons: Array.from(document.querySelectorAll('button'))
-              .filter(b => b.textContent.trim() === 'DISPATCH RUN').length,
+              .filter((b) => txt(b).toLowerCase() === 'dispatch run').length,
           };
         }
         """
@@ -161,6 +194,12 @@ def main() -> int:
     ap.add_argument("--port", type=int, default=5226)
     ap.add_argument("--headed", action="store_true", help="run Chromium with a visible window")
     ap.add_argument("--json-out", type=str, default="")
+    ap.add_argument(
+        "--path",
+        type=str,
+        default="",
+        help="console route to measure; empty = probe /dispatch then / and use whichever renders run panels",
+    )
     args = ap.parse_args()
 
     dist = ROOT / "dist" / "index.html"
@@ -200,14 +239,54 @@ def main() -> int:
             console_errors: list[str] = []
             page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
 
-            page.goto(f"http://127.0.0.1:{args.port}/", wait_until="load")
+            # The console route moved from / to /dispatch when the story page
+            # took the front door. Probe rather than hardcode, so this script
+            # keeps measuring the console and not whatever else answers /.
+            candidates = [args.path] if args.path else ["/dispatch", "/"]
+            console_path = None
+            for candidate in candidates:
+                page.goto(f"http://localhost:{args.port}{candidate}", wait_until="load")
+                try:
+                    page.wait_for_selector('[data-sel-id^="run:"]', timeout=15_000)
+                except Exception:
+                    continue
+                # The route that ANSWERED, after any redirect — the app's
+                # catch-all can serve the console from a path that does not
+                # exist yet, and reporting the requested path would lie.
+                console_path = candidate
+                break
+            if console_path is None:
+                print(
+                    f"bench-sim: no console found at {', '.join(candidates)} "
+                    "(no run panels rendered) — pass --path",
+                    file=sys.stderr,
+                )
+                return 2
+            results["console_path_requested"] = console_path
+            results["console_path"] = urlparse(page.url).path
             # Map tiles + fonts + first fleet paint. The console renders its run
             # panels from the store immediately, so this is about the basemap.
-            page.wait_for_selector('[data-sel-id^="run:"]', timeout=30_000)
             page.wait_for_timeout(6_000)
 
             results["ua"] = page.evaluate("() => navigator.userAgent")
             results["hardware_concurrency"] = page.evaluate("() => navigator.hardwareConcurrency")
+            # Which rasteriser actually drew the map. Headless Chromium falls
+            # back to SwiftShader (CPU) unless a GPU is wired up, and a map
+            # benchmark run on SwiftShader measures the CPU, not the product.
+            # Recording it means the reader can tell which one they are looking at.
+            results["gl_renderer"] = page.evaluate(
+                """
+                () => {
+                  const c = document.createElement('canvas');
+                  const gl = c.getContext('webgl2') || c.getContext('webgl');
+                  if (!gl) return 'no webgl context';
+                  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+                  return ext
+                    ? `${gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)} / ${gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)}`
+                    : `${gl.getParameter(gl.VENDOR)} / ${gl.getParameter(gl.RENDERER)}`;
+                }
+                """
+            )
 
             # ---- phase 1: the fleet as loaded (SPEC opening plan) -----------
             results["phases"].append(sample(page, args.seconds, "baseline"))
@@ -223,21 +302,27 @@ def main() -> int:
                 page.wait_for_timeout(400)
             page.wait_for_timeout(1_500)
 
-            active = page.evaluate(
-                """
-                () => Array.from(document.querySelectorAll('[data-sel-id^="run:"] .plate > span'))
-                       .filter(n => n.textContent.trim() === 'ACTIVE').length
-                """
-            )
+            pre_loaded = fleet_probe(page)
             loaded = sample(page, args.seconds, "loaded")
             loaded["dispatched_clicks"] = dispatched
-            loaded["active_runs"] = active
-            loaded["total_runs"] = page.locator('[data-sel-id^="run:"]').count()
+            loaded["active_runs"] = pre_loaded["statuses"].count("active")
+            loaded["staged_runs"] = pre_loaded["statuses"].count("staged")
+            loaded["complete_runs"] = pre_loaded["statuses"].count("complete")
+            loaded["total_runs"] = pre_loaded["runPanels"]
             results["phases"].append(loaded)
 
             results["console_errors"] = console_errors
             browser.close()
     finally:
+        # npx.cmd is a shim: terminating it on Windows leaves the real vite node
+        # process holding the port, so the NEXT run dies with "port in use".
+        # Kill the tree, not the shim.
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(server.pid)],
+                capture_output=True,
+                check=False,
+            )
         server.terminate()
         try:
             server.wait(timeout=10)
