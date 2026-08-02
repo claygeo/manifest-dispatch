@@ -181,3 +181,11 @@ fine-tuned." That means:
 - Error handling: every network call in live mode has a failure state the user can
   see and recover from; the app never white-screens on bad data (error boundaries
   on each surface).
+- **Measured load proof (BENCHMARKS.md).** "Handles load" is a number, not an
+  adjective. Ship a re-runnable bench script + published results with methodology
+  and date: (1) realtime fan-out — N simulated drivers publishing GPS at 1Hz over
+  Supabase Broadcast against the real project, subscriber-side delivery latency
+  p50/p95 at N=10/25/50; (2) sim engine stress — all runs animating simultaneously,
+  frame-time held under budget (report p95 frame time); (3) bundle size gzipped +
+  Lighthouse mobile perf score. Honest caveats included (consumer machine, free
+  tiles, single region) — the tradeterm standard.
