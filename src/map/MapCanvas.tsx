@@ -524,9 +524,21 @@ export function MapCanvas({
     map.on('mouseleave', 'mf-driver', onLeave)
 
     return () => {
-      map.remove()
+      /**
+       * Disown the map BEFORE tearing it down, not after.
+       *
+       * Every guard in this file is `mapRef.current`/`readyRef.current`, and
+       * `remove()` is not a quiet call: it destroys the style, drains the
+       * render queue and fires listeners on the way out. Nulling the refs
+       * afterwards leaves a window in which a queued frame or a settling
+       * style callback can still reach a map whose style is already gone,
+       * which surfaces as `getSource of null`. The story page mounts and
+       * unmounts map-bearing surfaces as you scroll, so that window gets
+       * opened far more often here than anywhere else in the app.
+       */
       mapRef.current = null
       readyRef.current = false
+      map.remove()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -753,7 +765,8 @@ export function MapCanvas({
      */
     let attempts = 0
     const fitWhenSized = () => {
-      if (done || attempts++ > 240) return
+      // The re-arm below outlives an unmount if one lands between frames.
+      if (done || mapRef.current !== map || attempts++ > 240) return
       const c = map.getCanvas()
       if (c.width >= 200 && c.height >= 200) {
         map.resize()

@@ -211,7 +211,7 @@ export function ManifestPage() {
         <DemoChip />
         <span className="chip">{`Stops ${counts.done}/${counts.total} closed`}</span>
         <div className="mf-bar-end">
-          <Link className="btn" to="/">
+          <Link className="btn" to="/dispatch">
             Back to dispatch
           </Link>
           <ThemeToggle />

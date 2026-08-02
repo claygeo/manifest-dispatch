@@ -23,17 +23,20 @@ packed — dispatch, live tracking, compliant handoff, closeout.
 
 ## What it does
 
-- **Dispatch console** (`/`) — the whole page is the map. Runs and stop tickets
-  float over it as panels. Start runs, reorder stops, watch ETAs drift, catch
-  delivery-window violations before they happen.
+- **Story page** (`/`) — the front door: one order's lifecycle, packed to closed
+  to filed, scrollable in about a minute. Every screen on it is the real
+  component rendering the live sim, framed and scaled. No screenshots.
+- **Dispatch console** (`/dispatch`) — the whole page is the map. Runs and stop
+  tickets float over it as panels. Start runs, reorder stops, watch ETAs drift,
+  catch delivery-window violations before they happen.
 - **Driver app** (`/driver`) — phone-first ticket queue. One primary action per
   state: depart → arrived → verify ID → close (cash / debit / digital) → next stop.
   A driver who has never used software doesn't have to think.
-- **Customer tracking** (`/t/MFST-4102`) — no-account tracking link: stops away,
+- **Customer tracking** (`/t/MFST-4105`) — no-account tracking link: stops away,
   ETA window, driver position.
-- **Compliance** — every run carries a printable delivery manifest; ID verification
-  is a mandatory state (you cannot close a stop without it); delivery windows are
-  enforced in the UI, not a PDF appendix.
+- **Compliance** — every run carries a printable delivery manifest
+  (`/manifest/run-a`); ID verification is a mandatory state (you cannot close a
+  stop without it); delivery windows are enforced in the UI, not a PDF appendix.
 
 ## Demo vs. live — honest boundaries
 

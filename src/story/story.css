@@ -1,0 +1,882 @@
+/* =========================================================================
+   Story page `/` — the front door.
+
+   DESIGN.md v2 with one licence: this is the single marketing surface, so
+   Source Serif 4 carries the headlines rather than appearing only at display
+   moments. Everything else is unchanged and every value below resolves to a
+   token in theme.css. One accent (fern). Amber nowhere on this page, because
+   nothing here is an exception a dispatcher must act on. Dual radius holds:
+   device frames and cards are soft, the proof table and its rows are tight.
+
+   Layout rule: one column with a 1180px measure. The section grids collapse at
+   900px; the embedded surfaces switch to phone-sized stages at 760px, which is
+   the same breakpoint TrackingPage's own `useNarrow` uses, so no embed is ever
+   caught straddling its own responsive boundary.
+   ========================================================================= */
+
+/* The rest of the app is a set of pinned panes and theme.css locks the
+   document to the viewport for them. StoryPage adds this class while it is
+   mounted and removes it on the way out. */
+html.st-scroll,
+html.st-scroll body,
+html.st-scroll #root {
+  height: auto;
+  min-height: 100%;
+}
+
+.st-root {
+  position: relative;
+  width: 100%;
+  background: var(--field);
+  color: var(--ink);
+
+  --st-measure: 1180px;
+  --st-gutter: 20px;
+  --st-section-y: 76px;
+
+  /* Hero scrim, per theme. Declared here rather than mixed at runtime so the
+     first paint is right before any script has decided anything. */
+  --st-scrim-top: rgba(35, 38, 34, 0.1);
+  --st-scrim-mid: rgba(35, 38, 34, 0.44);
+  --st-scrim-bottom: rgba(35, 38, 34, 0.95);
+  --st-fade: rgba(35, 38, 34, 0);
+  --st-fade-end: rgba(35, 38, 34, 0.92);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .st-root {
+    --st-scrim-top: rgba(244, 241, 234, 0.08);
+    --st-scrim-mid: rgba(244, 241, 234, 0.5);
+    --st-scrim-bottom: rgba(244, 241, 234, 0.96);
+    --st-fade: rgba(255, 255, 255, 0);
+    --st-fade-end: rgba(255, 255, 255, 0.94);
+  }
+}
+
+:root[data-theme='light'] .st-root {
+  --st-scrim-top: rgba(244, 241, 234, 0.08);
+  --st-scrim-mid: rgba(244, 241, 234, 0.5);
+  --st-scrim-bottom: rgba(244, 241, 234, 0.96);
+  --st-fade: rgba(255, 255, 255, 0);
+  --st-fade-end: rgba(255, 255, 255, 0.94);
+}
+
+.st-wrap {
+  width: 100%;
+  max-width: var(--st-measure);
+  margin-inline: auto;
+  padding-inline: var(--st-gutter);
+}
+
+/* ================================================================ hero === */
+
+.st-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--field-deep);
+}
+
+/* MapCanvas brings its own `.map-root { position:absolute; inset:0 }`, so this
+   only has to be the positioned box it fills. */
+.st-hero__map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.st-hero__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--st-scrim-top) 0%,
+    var(--st-scrim-mid) 46%,
+    var(--st-scrim-bottom) 100%
+  );
+}
+
+.st-hero__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--st-measure);
+  margin-inline: auto;
+  padding: 0 var(--st-gutter) 92px;
+}
+
+.st-hero__rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.st-hero__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(52px, 11vw, 104px);
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+}
+
+.st-hero__claim {
+  margin: 18px 0 0;
+  max-width: 34ch;
+  font-family: var(--font-ui);
+  font-size: clamp(16px, 2.1vw, 21px);
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.st-hero__sub {
+  margin: 14px 0 0;
+  max-width: 44ch;
+  font-family: var(--font-ui);
+  font-size: clamp(13px, 1.5vw, 15px);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* A hairline that grows out of the bottom edge. Not an animated bouncing
+   chevron: the page says "scroll" in words directly above it. */
+.st-hero__cue {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
+  width: 1px;
+  height: 46px;
+  background: linear-gradient(to bottom, transparent, var(--accent));
+  opacity: 0.7;
+}
+
+/* ============================================================ sections === */
+
+.st-section {
+  padding-block: var(--st-section-y);
+  border-top: var(--hairline) solid var(--border);
+}
+
+.st-section--tint {
+  background: var(--field-deep);
+}
+
+.st-head {
+  max-width: 68ch;
+  margin-bottom: 30px;
+}
+
+.st-eyebrow {
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+}
+
+.st-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+}
+
+.st-lede {
+  margin: 14px 0 0;
+  font-family: var(--font-ui);
+  font-size: clamp(14px, 1.6vw, 17px);
+  line-height: 1.58;
+  color: var(--ink-2);
+}
+
+/* Body prose. 11px micro is an ops density and would be wrong here. */
+.st-note {
+  margin: 0 0 14px;
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.st-note:last-child {
+  margin-bottom: 0;
+}
+
+.st-note--dim {
+  color: var(--ink-3);
+  font-size: 13.5px;
+}
+
+/* An identifier from the codebase. Mono is correct: these are names, not
+   prose, and the manifest register is exactly the register they belong to. */
+.st-code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--done-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ---- section grids ---- */
+
+/* `minmax(0, 1fr)` rather than a bare `auto` track, in both states. An auto
+   track is floored at its items' min-content width, and one item here is a
+   verbatim 69-character line of source inside a scroll container — enough to
+   push the whole document sideways on a 390px phone if the track is allowed
+   to grow to it. */
+.st-pair,
+.st-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+  align-items: center;
+}
+
+.st-reveal,
+.st-pair > *,
+.st-split > * {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .st-pair {
+    grid-template-columns: 410px minmax(0, 1fr);
+    gap: 44px;
+  }
+
+  .st-split {
+    grid-template-columns: 410px minmax(0, 1fr);
+    gap: 52px;
+  }
+}
+
+.st-split__aside {
+  align-self: center;
+}
+
+/* ============================================================== frames === */
+
+.st-frame {
+  margin: 0;
+  width: 100%;
+}
+
+.st-device {
+  width: 100%;
+  margin-inline: auto;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  box-shadow: var(--shadow-ambient);
+  overflow: hidden;
+}
+
+.st-frame--browser .st-device {
+  border-radius: var(--radius-soft);
+}
+
+.st-frame--phone .st-device {
+  border-radius: 30px;
+  padding: 10px;
+}
+
+/* Browser chrome: three inert dots and an address pill. The pill is mono
+   because a URL is an identifier, which is the register mono owns here. */
+.st-chrome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border-bottom: var(--hairline) solid var(--border);
+  background: var(--panel);
+}
+
+.st-chrome__dots {
+  display: flex;
+  flex: none;
+  gap: 5px;
+}
+
+.st-chrome__dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.st-chrome__url {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 10px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The speaker slot on a phone frame. One rounded rule, no notch cosplay. */
+.st-phone-slot {
+  display: block;
+  width: 46px;
+  height: 4px;
+  margin: 2px auto 8px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  opacity: 0.8;
+}
+
+.st-screen {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--field-deep);
+}
+
+.st-frame--phone .st-screen {
+  border-radius: 21px;
+}
+
+/* The real surface, at its own pixel size, scaled to the column. `inert` is
+   set on this node from Frame.tsx; pointer-events is the fallback for
+   browsers that have not shipped inert. */
+.st-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  pointer-events: none;
+  user-select: none;
+  background: var(--field);
+}
+
+/* Held space while an embed is unmounted. A quiet field, never a spinner and
+   never a skeleton pretending to be content. */
+.st-screen__idle {
+  position: absolute;
+  inset: 0;
+  background: var(--field-deep);
+}
+
+/* For a surface that is genuinely longer than any frame: the manifest is a
+   letter-size document and cropping it is honest, but the crop should read as
+   "continues below" rather than as a rendering failure. */
+.st-screen--fade::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 92px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--st-fade), var(--st-fade-end));
+}
+
+.st-caption {
+  margin: 12px 2px 0;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.st-caption a {
+  color: var(--accent);
+  border-bottom: var(--hairline) solid var(--accent-line);
+}
+
+/* =========================================================== the record == */
+
+.st-record {
+  max-width: 760px;
+}
+
+.st-record__grid {
+  margin: 0;
+  padding: 4px 0;
+}
+
+.st-record__row {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.st-record__row:last-child {
+  border-bottom: none;
+}
+
+.st-record__field {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+  padding-top: 1px;
+}
+
+.st-record__value {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.st-record__note {
+  margin: 0;
+  padding: 11px 14px 13px;
+  border-top: var(--hairline) solid var(--border);
+  background: var(--field);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+@media (max-width: 560px) {
+  .st-record__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* ================================================================ proof == */
+
+.st-table-card {
+  max-width: 940px;
+}
+
+.st-table-scroll {
+  overflow-x: auto;
+}
+
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.st-table th,
+.st-table td {
+  text-align: right;
+  padding: 9px 14px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.st-table thead th {
+  font-weight: 500;
+  font-size: var(--type-micro);
+  color: var(--ink-3);
+  border-bottom-color: var(--border-strong);
+}
+
+.st-table th:first-child,
+.st-table td:first-child {
+  text-align: left;
+}
+
+.st-table tbody th {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.st-table tbody td {
+  color: var(--ink-2);
+}
+
+.st-table tbody tr:last-child th,
+.st-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Zero loss is the finding, so it is the one value that carries the accent. */
+.st-table__zero {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+.st-table-card__foot {
+  margin: 0;
+  padding: 10px 14px 12px;
+  border-top: var(--hairline) solid var(--border);
+  background: var(--field);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.02em;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.st-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+  max-width: 940px;
+}
+
+@media (min-width: 760px) {
+  .st-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* One display numeral per tile — the glance-anchor rule survives here too. */
+.st-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 15px 16px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+}
+
+.st-stat__label {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.st-caveats {
+  max-width: 860px;
+  margin-top: 26px;
+  padding: 16px 18px;
+  border: var(--hairline) dashed var(--border-strong);
+  border-radius: var(--radius-soft);
+}
+
+.st-caveats__head {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.st-caveats ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.st-caveats li {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* ============================================ code + field excerpts ====== */
+
+/* A real excerpt from the repo, verbatim. Mono is the record voice and this is
+   a record. It scrolls rather than reflows: a wrapped line of source is a
+   quoted line that has been altered. */
+.st-snippet {
+  margin: 0 0 16px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-tight);
+  background: var(--field-deep);
+  overflow: hidden;
+}
+
+.st-snippet pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
+
+.st-snippet code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  white-space: pre;
+}
+
+.st-snippet figcaption {
+  padding: 7px 14px;
+  border-top: var(--hairline) solid var(--border);
+  background: var(--panel);
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+
+/* Field name -> what it records. Same shape as the order record above, so the
+   two "here is the actual data" moments on the page rhyme. */
+.st-writes {
+  margin: 0 0 16px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-tight);
+  overflow: hidden;
+}
+
+.st-writes > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 13px;
+  border-bottom: var(--hairline) solid var(--border);
+}
+
+.st-writes > div:last-child {
+  border-bottom: none;
+}
+
+.st-writes dt {
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  padding-top: 1px;
+}
+
+.st-writes dd {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+@media (max-width: 560px) {
+  .st-writes > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+/* ============================================================== switch === */
+
+.st-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.st-switch .chip {
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+
+.st-switch .chip:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+/* =============================================================== links === */
+
+.st-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 760px) {
+  .st-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.st-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 15px 16px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+  color: var(--ink);
+  transition: border-color var(--t-base) var(--ease), background var(--t-base) var(--ease);
+}
+
+.st-link:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.st-link__title {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+
+.st-link__path {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: var(--type-plate);
+  letter-spacing: 0.03em;
+  color: var(--accent);
+}
+
+.st-link__note {
+  grid-column: 1 / -1;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* ============================================================== footer === */
+
+.st-footer {
+  padding-block: 40px 56px;
+  border-top: var(--hairline) solid var(--border);
+  background: var(--field);
+}
+
+.st-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.st-footer__left {
+  max-width: 62ch;
+}
+
+.st-footer__by {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.st-footer__by a {
+  color: var(--accent);
+  border-bottom: var(--hairline) solid var(--accent-line);
+}
+
+.st-footer__fine {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.st-footer__top {
+  flex: none;
+}
+
+/* Floating return control. Appears once the hero is well behind you. */
+.st-totop {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: var(--panel-glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-ambient);
+  font-size: 15px;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+}
+
+.st-totop.is-in {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* ============================================================== reveal === */
+
+.st-reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 420ms var(--ease), transform 420ms var(--ease);
+}
+
+.st-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* theme.css already flattens transition durations under reduced motion; this
+   makes sure a reveal lands in its final state rather than mid-flight. */
+@media (prefers-reduced-motion: reduce) {
+  .st-reveal,
+  .st-reveal.is-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .st-totop {
+    transition: none;
+  }
+}
+
+/* =========================================================== responsive == */
+
+@media (max-width: 900px) {
+  .st-root {
+    --st-section-y: 58px;
+  }
+
+  .st-head {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .st-root {
+    --st-gutter: 16px;
+    --st-section-y: 48px;
+  }
+
+  .st-hero__inner {
+    padding-bottom: 74px;
+  }
+
+  .st-footer__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
