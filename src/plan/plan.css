@@ -88,6 +88,18 @@
   color: var(--ink-2);
 }
 
+/* "3 of 11 picked" — a sentence, not an identifier, so it stays in the UI face.
+   `.plate-id` is the mono document register and "0/11" read there as "no
+   orders" rather than "none picked yet". */
+.pl-plate-count {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: var(--type-plate);
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
 .pl-empty {
   color: var(--ink-2);
 }
@@ -184,6 +196,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* This order gets the van to that kerb after the window has closed. Amber
+   because it is actionable in two ways that are both one tap away: nudge the
+   stop back up, or take the suggested order. Same treatment the refused
+   insertion already uses — border + tint, no new shape, no new hue. */
+.pl-seqrow--late {
+  border-left-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.pl-seqrow--late .pl-seqrow__num {
+  background: var(--amber);
+  color: var(--amber-ink);
+}
+
+.pl-seqrow__risk {
+  color: var(--amber);
 }
 
 .pl-nudge {

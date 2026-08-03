@@ -32,32 +32,22 @@ import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
 import { ChevronDown, ChevronUp } from '../console/icons'
 import { useStore } from '../store'
 import { formatClock, shortName } from '../format'
-import { DEPOT_NODE, nodePosition, pathCoords } from '../routing/matrix'
+import { nodePosition, pathCoords } from '../routing/matrix'
 import { suggestForSet, totalDuration } from '../routing/optimize'
-import { canFitToday, type FitResult, type PlanRunInput } from '../routing/feasibility'
+import { canFitToday, type FitResult } from '../routing/feasibility'
 import {
   dispatchPlannedRun,
-  labelsOf,
+  planRunInput,
   poolOrders,
   shiftEndMs,
-  windowsOf,
+  windowRisks,
   type PlannedDispatch,
   type PoolOrder,
 } from './planRun'
+import { compare } from './display'
 import './plan.css'
 
 const RAIL_PADDING: MapPadding = { top: 64, bottom: 24, left: 24, right: 24 }
-
-/** Sim-seconds -> "38 min". The planner's only unit. */
-function minutes(seconds: number): string {
-  return `${Math.max(1, Math.round(seconds / 60))} min`
-}
-
-function signedMinutes(seconds: number): string {
-  const m = Math.round(seconds / 60)
-  if (m === 0) return 'same'
-  return m > 0 ? `+${m} min` : `${m} min`
-}
 
 export function PlanPage() {
   /*
@@ -75,10 +65,18 @@ export function PlanPage() {
    * what keeps that from being a 5 Hz re-render.
    */
   const clockBucket = useStore((s) => Math.floor((s.simNowMs || Date.now()) / 900_000))
-  const pool = useMemo<PoolOrder[]>(
-    () => poolOrders(useStore.getState().stops, useStore.getState().simNowMs || Date.now()),
+  /**
+   * The planning moment every figure on this screen is measured from. Held for
+   * the whole bucket on purpose: the pool's promised windows, the projected
+   * arrivals and the depot cutoff all have to be anchored to the SAME instant,
+   * or a stop could be flagged amber against a window that was computed two
+   * minutes of sim-time ago.
+   */
+  const nowMs = useMemo(
+    () => useStore.getState().simNowMs || Date.now(),
     [generation, clockBucket],
   )
+  const pool = useMemo<PoolOrder[]>(() => poolOrders(nowMs), [nowMs])
 
   const [selected, setSelected] = useState<string[]>([])
   const [sequence, setSequence] = useState<string[]>([])
@@ -92,10 +90,7 @@ export function PlanPage() {
   const byNode = useMemo(() => new Map(pool.map((o) => [o.nodeId, o])), [pool])
 
   /** The depot's closing time, in the sim's clock. */
-  const cutoffLabel = useMemo(
-    () => formatClock(shiftEndMs(useStore.getState().simNowMs || Date.now())),
-    [generation, clockBucket],
-  )
+  const cutoffLabel = useMemo(() => formatClock(shiftEndMs(nowMs)), [nowMs])
 
   /**
    * The proposal. A property of the SET of stops and nothing else — ticking the
@@ -141,12 +136,24 @@ export function PlanPage() {
   const yoursS = useMemo(() => totalDuration(sequence), [sequence])
   const matchesSuggestion = sequence.join('|') === suggestion.sequence.join('|')
   /*
-   * DESIGN.md: amber is "actionable only". A dispatcher order that COSTS time
-   * is actionable — "Use suggested order" is right there. An order that ties
-   * the suggestion or beats it is the local knowledge this screen exists to
-   * measure, and flagging it amber would be scolding the operator for winning.
+   * All three displayed figures come out of one rounding, so "Yours 47 ·
+   * Suggested 35 · +11" — which is what independent roundings used to produce —
+   * cannot happen. See display.ts.
    */
-  const costsTime = Math.round((yoursS - suggestion.suggestedS) / 60) > 0
+  const comparison = useMemo(
+    () => compare(yoursS, suggestion.suggestedS),
+    [yoursS, suggestion.suggestedS],
+  )
+
+  /**
+   * SPEC's compliance surface: "stops outside their window flag amber on
+   * console", and the story page promises amber BEFORE a miss. The late-order
+   * path already refused window-breaking insertions; a manual reorder used to
+   * report only the drive-time delta, so a dispatcher could demote a stop past
+   * its own window and see nothing but "+11 min". Same arithmetic, both paths.
+   */
+  const risks = useMemo(() => windowRisks(sequence, pool, nowMs), [sequence, pool, nowMs])
+  const riskByNode = useMemo(() => new Map(risks.map((r) => [r.nodeId, r])), [risks])
 
   /* ------------------------------------------------------------- preview -- */
 
@@ -204,18 +211,10 @@ export function PlanPage() {
       return
     }
     const order = candidates[lateIndex % candidates.length]
-    const nowMs = useStore.getState().simNowMs || Date.now()
-    const run: PlanRunInput = {
-      runId: 'plan-draft',
-      fromNodeId: DEPOT_NODE,
-      sequence,
-      windows: windowsOf(pool),
-      labels: labelsOf(pool),
-      shiftEndMs: shiftEndMs(nowMs),
-    }
+    const run = planRunInput(sequence, pool, nowMs)
     setLateOrder({ order, verdict: canFitToday(order.nodeId, run, nowMs) })
     setLateIndex((i) => i + 1)
-  }, [pool, selectedSet, sequence, lateIndex])
+  }, [pool, selectedSet, sequence, lateIndex, nowMs])
 
   /** Accept the insertion the feasibility check found. */
   const acceptLateOrder = useCallback(() => {
@@ -353,10 +352,12 @@ export function PlanPage() {
             <section className="pl-section">
               <div className="plate">
                 <span>Unrouted orders</span>
-                <span className="plate-id">{`${selected.length}/${pool.length}`}</span>
+                {/* Sentence, not a ratio: "0/11" reads as zero orders available. */}
+                <span className="pl-plate-count">{`${selected.length} of ${pool.length} picked`}</span>
               </div>
               <p className="micro pl-note">
-                Packed and waiting on the POS handoff. Pick the ones going out on this van.
+                Packed and waiting on the POS handoff — pick the ones going out on this van. This is
+                a practice pool of its own orders, separate from tonight's board on the console.
               </p>
               <ul className="pl-pool">
                 {pool.map((order) => {
@@ -396,12 +397,21 @@ export function PlanPage() {
               ) : (
                 <>
                   <ol className="pl-seq">
-                    {selectedOrders.map((order, i) => (
-                      <li key={order.nodeId} className="pl-seqrow">
+                    {selectedOrders.map((order, i) => {
+                      const risk = riskByNode.get(order.nodeId)
+                      return (
+                      <li
+                        key={order.nodeId}
+                        className={`pl-seqrow${risk ? ' pl-seqrow--late' : ''}`}
+                      >
                         <span className="pl-seqrow__num">{i + 1}</span>
                         <span className="pl-seqrow__main">
                           <span className="pl-seqrow__name">{shortName(order.customer)}</span>
-                          <span className="micro micro--dim">{`${order.window[0]}–${order.window[1]}`}</span>
+                          {risk ? (
+                            <span className="micro pl-seqrow__risk">{risk.reason}</span>
+                          ) : (
+                            <span className="micro micro--dim">{`${order.window[0]}–${order.window[1]}`}</span>
+                          )}
                         </span>
                         <span className="pl-nudge">
                           <button
@@ -426,7 +436,8 @@ export function PlanPage() {
                           </button>
                         </span>
                       </li>
-                    ))}
+                      )
+                    })}
                   </ol>
                   <p className="micro pl-note">
                     One position at a time, no free drag. A sequence nobody can explain is a
@@ -487,7 +498,7 @@ export function PlanPage() {
             <span className="pl-compare__pair">
               <span className="label">Yours</span>
               <span className="pl-compare__value">
-                {sequence.length === 0 ? '—' : minutes(yoursS)}
+                {sequence.length === 0 ? '—' : comparison.yoursLabel}
               </span>
             </span>
             <span className="pl-compare__sep" aria-hidden="true">
@@ -496,14 +507,23 @@ export function PlanPage() {
             <span className="pl-compare__pair">
               <span className="label">Suggested</span>
               <span className="pl-compare__value pl-compare__value--accent">
-                {sequence.length === 0 ? '—' : minutes(suggestion.suggestedS)}
+                {sequence.length === 0 ? '—' : comparison.suggestedLabel}
               </span>
             </span>
             {sequence.length > 0 ? (
               <span
-                className={`chip${matchesSuggestion ? ' chip--accent' : costsTime ? ' chip--amber' : ''}`}
+                className={`chip${
+                  matchesSuggestion ? ' chip--accent' : comparison.costsTime ? ' chip--amber' : ''
+                }`}
               >
-                {matchesSuggestion ? 'Matching' : signedMinutes(yoursS - suggestion.suggestedS)}
+                {matchesSuggestion ? 'Matching' : comparison.deltaLabel}
+              </span>
+            ) : null}
+            {risks.length > 0 ? (
+              <span className="chip chip--amber">
+                {risks.length === 1
+                  ? '1 stop misses its window'
+                  : `${risks.length} stops miss their window`}
               </span>
             ) : null}
           </div>

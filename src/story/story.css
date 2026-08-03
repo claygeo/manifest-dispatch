@@ -596,55 +596,13 @@ html.st-scroll #root {
   }
 }
 
-/* The two prose blocks under the strip: what crosses the boundary, and why the
-   audit trail is a by-product rather than a chore. */
-.st-mech {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 26px;
-}
-
-@media (min-width: 900px) {
-  .st-mech {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 40px;
-    align-items: start;
-  }
-}
-
-.st-mech__block {
-  max-width: 62ch;
-}
-
-.st-mech__label {
-  margin: 0 0 8px;
-  font-family: var(--font-ui);
-  font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--accent);
-}
-
 /* The takeaway. Sentences, not bullets — the job of this block is to be said
-   out loud by somebody who does not have the page open. */
-.st-repeat {
-  max-width: 860px;
-  margin-top: 30px;
-  padding: 17px 19px 18px;
-  background: var(--panel);
-  border: var(--hairline) solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-soft);
-}
-
-.st-repeat__head {
-  margin: 0 0 12px;
-  font-family: var(--font-ui);
-  font-size: var(--type-micro);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
+   out loud by somebody who does not have the page open.
+   ROUND-1: the two prose blocks that used to sit between the strip and this
+   list are gone (one moved under the manifest, one to the closing note), and
+   the panel that used to wrap the list went with the heading that announced how
+   many sentences were in it. What is left is the list, unboxed, directly under
+   the diagram it summarises. */
 .st-repeat__list {
   margin: 0;
   padding: 0;
@@ -675,6 +633,14 @@ html.st-scroll #root {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
+}
+
+/* Standing alone under the diagram rather than inside a panel. */
+.st-repeat__list--bare {
+  max-width: 62ch;
+  margin-top: 30px;
+  padding-left: 15px;
+  border-left: 3px solid var(--accent);
 }
 
 /* ================================================================ proof == */
@@ -755,9 +721,12 @@ html.st-scroll #root {
   max-width: 940px;
 }
 
+/* Two across rather than three: the section gained a plain-language latency
+   tile in round 1 when the percentile table went behind a disclosure, and four
+   tiles in a row at this width leaves each label too narrow to read. */
 @media (min-width: 760px) {
   .st-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -808,6 +777,73 @@ html.st-scroll #root {
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--ink-2);
+}
+
+/* ============================================== technical disclosure ===== */
+
+/* ROUND-1 FIX. Implementation detail that used to sit on the operator's path —
+   a source excerpt in the compliance section, an eight-column percentile table
+   in the measured section — now lives behind this. Native <details>, closed on
+   first paint with no script, so nothing reflows after the page renders.
+
+   The control reads as a quiet line of type with a rotating marker rather than
+   as a button: it is an aside, and a fern-filled control would claim it is the
+   next thing to do. */
+.st-more {
+  max-width: 62ch;
+  margin: 4px 0 0;
+  border-top: var(--hairline) solid var(--border);
+  padding-top: 12px;
+}
+
+.st-more--wide {
+  max-width: 940px;
+  margin-top: 22px;
+}
+
+.st-more__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-radius: var(--radius-tight);
+}
+
+/* Safari still paints the default triangle without this. */
+.st-more__summary::-webkit-details-marker {
+  display: none;
+}
+
+.st-more__summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.st-more[open] > .st-more__summary::before {
+  transform: rotate(90deg);
+}
+
+.st-more__summary:hover {
+  color: var(--ink);
+}
+
+.st-more__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.st-more__body {
+  padding-top: 14px;
 }
 
 /* ============================================ code + field excerpts ====== */
@@ -1064,6 +1100,41 @@ html.st-scroll #root {
 
 .st-footer__top {
   flex: none;
+}
+
+/* A prose line sitting directly under the figure it is about. */
+.st-under {
+  max-width: 62ch;
+  margin-top: 20px;
+}
+
+/* ROUND-1 FIX: the honest closing note. The page used to end on a directory of
+   links and a byline with nothing in between — "sells like a vendor and signs
+   off like a resume". Same paper card as the rest of the page, one accent rule
+   on the left so it reads as the closing statement rather than a fifth link. */
+.st-standing {
+  max-width: 780px;
+  margin-top: 32px;
+  padding: 18px 20px 19px;
+  background: var(--panel);
+  border: var(--hairline) solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-soft);
+}
+
+.st-standing__label {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+}
+
+.st-standing__contact {
+  margin-top: 12px;
+  margin-bottom: 0;
+  color: var(--ink);
 }
 
 /* Floating return control. Appears once the hero is well behind you. */

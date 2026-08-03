@@ -13,13 +13,20 @@
  * hijacked by someone playing with the planner.
  */
 
-import { registerRunLegs } from '../data/seed'
+import { PLANNER_POOL, registerRunLegs } from '../data/seed'
 import { formatClock, formatDocDate, shortName } from '../format'
-import { durationOf, legsForSequence, stopForNode, STOP_NODE_IDS } from '../routing/matrix'
+import {
+  DEPOT_NODE,
+  durationOf,
+  legsForSequence,
+  nodePosition,
+  stopForNode,
+  STOP_NODE_IDS,
+} from '../routing/matrix'
 import { parseClock } from '../window'
 import { useStore } from '../store'
 import type { PaymentMethod, Run, Stop } from '../types'
-import type { WindowPair } from '../routing/feasibility'
+import { projectSequence, type PlanRunInput, type WindowPair } from '../routing/feasibility'
 
 /** Fictional. Same 'First L.' shape as the seeded drivers. */
 const PLAN_DRIVER = 'Nadia P.'
@@ -40,12 +47,10 @@ export function shiftEndMs(nowMs: number): number {
 
 /* ------------------------------------------------------------------ pool --- */
 
-/** One unrouted order in the planner's pool. A read of the seeded fleet. */
+/** One unrouted practice order in the planner's pool. */
 export interface PoolOrder {
   /** Matrix node — what the routing engine speaks. */
   nodeId: string
-  /** The seeded stop this order was read from. */
-  sourceStopId: string
   orderCode: string
   customer: string
   address: string
@@ -81,39 +86,47 @@ function poolWindow(index: number, anchorMs: number): WindowPair {
 /**
  * The pool the planner offers, in matrix order.
  *
- * Addresses, customers and baskets are read from the seeded fleet, because the
- * leg matrix only knows those twelve nodes — inventing an address it has never
- * measured would mean inventing its travel times too, and the whole point of
- * this screen is that the numbers are measurements.
+ * These are the planner's OWN orders (`seed.ts#PLANNER_POOL`) — fresh codes,
+ * fresh customers, fresh baskets, none of them on the dispatch board. The
+ * planner used to read its pool off the seeded fleet, which put the same order
+ * code on `/dispatch` as delivered and on `/plan` as unrouted, in two different
+ * delivery windows. A product whose claim is "one state, no second system"
+ * cannot show a visitor two states for one order.
  *
- * The delivery WINDOWS, though, are anchored to `nowMs` rather than copied.
- * These are unrouted orders being planned right now, not the ones already on a
- * van: a copied window is promised against the moment its run was seeded, and
- * the demo clock runs at eight times real time, so within a few minutes of
- * browsing every copied window has closed and the planner refuses everything it
- * is offered. Anchoring to the planning moment is both the honest model of a
- * fresh order and what keeps the screen answering truthfully instead of
- * uniformly.
+ * What the pool still borrows from the fleet is the DOORSTEP: the leg matrix
+ * measured twelve places and no others, so an address it has never seen would
+ * come with invented travel times. `stopForNode` is the seam, and matrix.ts has
+ * already proved that mapping against the coordinates at import time.
+ *
+ * The delivery WINDOWS are anchored to `nowMs` rather than fixed. These are
+ * orders being planned right now: the demo clock runs at eight times real time,
+ * so a window written once would have closed within a few minutes of browsing
+ * and the planner would refuse everything it is offered. Anchoring to the
+ * planning moment is both the honest model of a fresh order and what keeps the
+ * screen answering truthfully instead of uniformly.
  */
-export function poolOrders(stops: Record<string, Stop>, nowMs: number): PoolOrder[] {
+export function poolOrders(nowMs: number): PoolOrder[] {
   const anchor = floorToQuarterHour(nowMs)
+  const byStop = new Map(PLANNER_POOL.map((order) => [order.atStopId, order]))
   const out: PoolOrder[] = []
   STOP_NODE_IDS.forEach((nodeId, index) => {
     const stopId = stopForNode(nodeId)
-    if (!stopId) return
-    const stop = stops[stopId]
-    if (!stop) return
+    const order = stopId ? byStop.get(stopId) : undefined
+    if (!order) {
+      throw new Error(
+        `[plan] matrix node '${nodeId}' has no practice order — seed.ts#PLANNER_POOL is out of step with the matrix`,
+      )
+    }
     out.push({
       nodeId,
-      sourceStopId: stopId,
-      orderCode: stop.orderCode,
-      customer: stop.customer,
-      address: stop.address,
-      lngLat: stop.lngLat,
+      orderCode: order.orderCode,
+      customer: order.customer,
+      address: order.address,
+      lngLat: nodePosition(nodeId),
       window: poolWindow(index, anchor),
-      amountDue: stop.amountDue,
-      payment: stop.payment,
-      items: stop.items,
+      amountDue: order.amountDue,
+      payment: order.payment,
+      items: order.items,
     })
   })
   return out
@@ -137,6 +150,72 @@ export function windowsOf(orders: PoolOrder[]): Record<string, WindowPair> {
 export function labelsOf(orders: PoolOrder[]): Record<string, string> {
   const out: Record<string, string> = {}
   for (const order of orders) out[order.nodeId] = shortName(order.customer)
+  return out
+}
+
+/* ---------------------------------------------------------- window risk --- */
+
+/**
+ * The draft run as the feasibility engine sees it — depot out, in the order the
+ * dispatcher currently has, against the windows the pool promised.
+ *
+ * One arithmetic, one answer. The late-order path already refuses an insertion
+ * that would blow a window; this is the same `projectSequence` call, so a manual
+ * reorder is judged by exactly the rule an insertion is judged by.
+ */
+export function planRunInput(sequence: string[], pool: PoolOrder[], nowMs: number): PlanRunInput {
+  return {
+    runId: 'plan-draft',
+    fromNodeId: DEPOT_NODE,
+    sequence,
+    windows: windowsOf(pool),
+    labels: labelsOf(pool),
+    shiftEndMs: shiftEndMs(nowMs),
+  }
+}
+
+/** A stop the current order cannot reach in time, and the two clock times that say so. */
+export interface WindowRisk {
+  nodeId: string
+  /** Projected arrival at the kerb, sim wall-clock. */
+  arriveMs: number
+  /** '8:41 PM' — the projection. */
+  projected: string
+  /** '8:30 PM' — the promise. */
+  closes: string
+  /** 'projected 8:41 PM — window ends 8:30 PM' */
+  reason: string
+}
+
+/**
+ * Which stops the CURRENT order pushes out of their promised window.
+ *
+ * The home page promises "amber before miss", and the late-order path keeps
+ * that promise. A manual reorder did not: it showed the drive-time delta and
+ * nothing else, so a dispatcher could demote a stop past its own window and the
+ * screen would report the cost as "+11 min" with no warning at all. This is the
+ * missing half.
+ *
+ * Arriving EARLY is not a risk — the van waits, which `projectSequence` already
+ * models — so only a late arrival is reported.
+ */
+export function windowRisks(sequence: string[], pool: PoolOrder[], nowMs: number): WindowRisk[] {
+  if (sequence.length === 0) return []
+  const run = planRunInput(sequence, pool, nowMs)
+  const projection = projectSequence(run, sequence, nowMs)
+  const out: WindowRisk[] = []
+  for (const stop of projection.stops) {
+    if (!stop.missed) continue
+    const projected = formatClock(stop.arriveMs)
+    const closes = run.windows[stop.nodeId]?.[1] ?? 'its window'
+    out.push({
+      nodeId: stop.nodeId,
+      arriveMs: stop.arriveMs,
+      projected,
+      closes,
+      reason: `projected ${projected} — window ends ${closes}`,
+    })
+  }
   return out
 }
 

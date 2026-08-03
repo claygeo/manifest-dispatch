@@ -11,9 +11,12 @@
  * page's load-bearing positioning claim, and positioning claims drift. Here it
  * is a typed constant with a test file next to it that holds the line on the
  * things that must stay true — three stages, exactly one of them ours, the POS
- * never described as something we replace, the ingestion boundary named as a
- * boundary rather than as a shipped integration, and no jargon in the
- * sentences a non-engineer is supposed to be able to say out loud.
+ * never described as something we replace, and no jargon in the sentences a
+ * non-engineer is supposed to be able to say out loud.
+ *
+ * The rest of the page's operator-facing prose lives next door in `copy.ts`,
+ * and `mechanism.test.ts` sweeps both. The POS-handoff caveat that used to live
+ * in this file now sits in `copy.ts`'s NEXT_STEP block, where the page ends.
  */
 
 export interface MechanismStage {
@@ -73,20 +76,12 @@ export const MECHANISM_STAGES: readonly MechanismStage[] = [
 ]
 
 /**
- * The handoff itself. One record crosses the boundary, and in this demo the
- * record is seeded rather than received — which is said here in the same
- * breath as the claim, not in a footnote.
- */
-export const MECHANISM_HANDOFF = {
-  label: 'The handoff',
-  body: 'One packed order crosses the line: who it is for, where it goes, what is in the bag, what is owed, and the window it was promised in. Manifest does not take payment, does not hold inventory, and does not want the counter. It takes the bag from the moment it is sealed to the moment it is handed over and logged.',
-  caveat:
-    'In this demo those records are seeded rather than received from a live POS. Reading them off a real one is the first item on the production gap list rather than a solved problem, and every section of this page that touches it says so.',
-} as const
-
-/**
  * Why the audit trail is a by-product rather than a chore. This is the part
  * that usually gets sold as "reporting"; it is more honest as arithmetic.
+ *
+ * ROUND-1 MOVE: this used to sit in the "how it works" section, which a phone
+ * reviewer flagged as the place the scroll became unbearable. It reads better
+ * under the manifest itself anyway — it is the claim that document is making.
  */
 export const MECHANISM_RECORD = {
   label: 'The record',
@@ -94,15 +89,21 @@ export const MECHANISM_RECORD = {
 } as const
 
 /**
- * Three sentences a director can repeat in a meeting without a slide.
+ * The sentences a director can repeat in a meeting without a slide.
  *
  * Constraints the test enforces: plain words only, short enough to say in one
  * breath, and no claim the product cannot back up on this page.
+ *
+ * ROUND-1 FIX (length): there were three, under a heading announcing that there
+ * were three, in a section that had already spent four blocks restating the
+ * hero. A phone reviewer measured the page at roughly thirteen thousand pixels
+ * and nearly abandoned it here. The section is now its diagram plus these two
+ * lines, and the third sentence's content is folded into the second rather than
+ * dropped.
  */
 export const MECHANISM_SENTENCES: readonly string[] = [
   'We keep the point of sale we already run. Manifest picks the order up once it is packed and owns everything after that.',
-  'Every action the driver takes is the record, so nobody re-types a manifest at the end of the night.',
-  'The ID check is a step the app will not let a driver skip, which means the compliance story reads the same on the worst day as on the best one.',
+  'Every action the driver takes is the record, and the ID check is the one step the app will not let a driver skip.',
 ]
 
 /**

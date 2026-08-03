@@ -74,6 +74,19 @@ export const BROADCAST_TIERS: readonly BroadcastTier[] = [
   },
 ]
 
+/**
+ * The worst figure of each kind across every tier, for the plain-language
+ * sentence the page leads with now that the percentile table is folded behind a
+ * disclosure. Derived rather than typed out: a re-run that makes one tier worse
+ * moves the sentence with it, and the sentence can never quote a better number
+ * than the table under it.
+ */
+export const BROADCAST_WORST = {
+  p50Ms: Math.max(...BROADCAST_TIERS.map((t) => t.p50Ms)),
+  p95Ms: Math.max(...BROADCAST_TIERS.map((t) => t.p95Ms)),
+  maxMs: Math.max(...BROADCAST_TIERS.map((t) => t.maxMs)),
+} as const
+
 export const BROADCAST_RUN = {
   date: '2026-08-02',
   command: 'npm run bench:broadcast',
@@ -84,8 +97,8 @@ export const BROADCAST_RUN = {
 
 export const TEST_COUNTS = {
   /** `npm test` — vitest, green. */
-  unit: 370,
-  unitFiles: 16,
+  unit: 431,
+  unitFiles: 18,
   /** `npm run test:rpc` — contract checks fired at the real Supabase RPCs. */
   rpc: 25,
 } as const

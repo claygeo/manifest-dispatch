@@ -285,13 +285,21 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
           {liveArmed ? (
             <span className="chip chip--mono dc-hide-sm">{`Session ${liveCode}`}</span>
           ) : null}
+          {/* ROUND-1 FIX: a reviewer read "Paper" and "Night" as two unlabelled
+              words in the corner and could not tell they were one control, let
+              alone what it switched. One quiet word in front of the pair says
+              what the pair is; the toggle's own label still says which way it
+              goes. Dropped below 900px, where the strip needs the room and the
+              map itself makes the theme obvious. */}
+          <span className="dc-tool-label dc-hide-sm">Theme</span>
           <ThemeToggle />
           <button
             type="button"
             className={liveBtnClass}
             onClick={() => setLiveOpen(true)}
             aria-haspopup="dialog"
-            title="Pair a driver phone over a private session"
+            aria-label="Live session — pair a real driver phone using a private session code"
+            title="Live session — pair a real driver phone using a private session code. The demo fleet keeps running."
           >
             {liveArmed ? (LIVE_BTN_LABEL[liveStatus] ?? 'Live') : 'Live'}
           </button>

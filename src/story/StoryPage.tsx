@@ -25,7 +25,7 @@
  * `prefers-reduced-motion` removes entirely.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
 import MapCanvas from '../map/MapCanvas'
 import { useStore } from '../store'
@@ -33,20 +33,30 @@ import { DemoChip } from '../ui/controls'
 import { formatMoney, PAYMENT_TEXT } from '../format'
 import { windowLabel } from '../selectors'
 import type { PaymentMethod } from '../types'
-import { EmbedFrame, LazyBlock, Reveal, type StageSize } from './Frame'
+import { Disclosure, EmbedFrame, LazyBlock, Reveal, type StageSize } from './Frame'
 import {
   BROADCAST_CAVEATS,
   BROADCAST_RUN,
   BROADCAST_TIERS,
+  BROADCAST_WORST,
   TEST_COUNTS,
 } from './proof'
 import {
-  MECHANISM_HANDOFF,
   MECHANISM_RECORD,
   MECHANISM_SENTENCES,
   MECHANISM_STAGES,
   PLAN_TEASER,
 } from './mechanism'
+import {
+  ID_CHECK,
+  ID_CHECK_TECHNICAL,
+  MEASURED,
+  NEXT_STEP,
+  ORDER_RECORD,
+  SECTIONS,
+  TECHNICAL_SUMMARY,
+} from './copy'
+import { controlIsClear } from './overlap'
 import {
   ConsoleEmbed,
   DriverIdEmbed,
@@ -144,6 +154,55 @@ function useScrolledPast(px: number): boolean {
   return past
 }
 
+/**
+ * ROUND-1 FIX: the floating return control is not allowed to sit on an embed.
+ *
+ * At 390px it landed on the ID-check card and covered the Age and Expires
+ * values — the two fields that section is there to show. There is no corner to
+ * move it to on a phone, because the embeds are as wide as the page, so the
+ * control yields instead: it fades while an embedded surface is under it and
+ * comes back the moment the reader scrolls clear. The footer's own "Back to
+ * top" is always there, so the affordance is never missing.
+ *
+ * The geometry is in `overlap.ts` and unit-tested there. This hook only reads
+ * rectangles, rAF-throttled, on scroll and resize — a handful of
+ * `getBoundingClientRect` calls per frame at most, and none at all while the
+ * control is hidden by the scroll-depth rule above it.
+ */
+function useClearOfEmbeds(ref: RefObject<HTMLElement | null>, active: boolean): boolean {
+  const [clear, setClear] = useState(true)
+
+  useEffect(() => {
+    if (!active) {
+      setClear(true)
+      return
+    }
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const el = ref.current
+      if (!el) return
+      const embeds = Array.from(document.querySelectorAll('.st-device')).map((node) =>
+        node.getBoundingClientRect(),
+      )
+      setClear(controlIsClear(el.getBoundingClientRect(), embeds))
+    }
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [ref, active])
+
+  return clear
+}
+
 /* ------------------------------------------------------------ fragments -- */
 
 function SectionHead({
@@ -180,7 +239,7 @@ function OrderRecord({ stopId }: { stopId: string | null }) {
   return (
     <div className="panel st-record">
       <div className="plate">
-        <span>Packed order, as received</span>
+        <span>{ORDER_RECORD.plate}</span>
         <span className="plate-id">{stop.orderCode}</span>
       </div>
       <dl className="st-record__grid">
@@ -191,11 +250,7 @@ function OrderRecord({ stopId }: { stopId: string | null }) {
           </div>
         ))}
       </dl>
-      <p className="st-record__note">
-        Seven fields and a delivery window. In the demo these records are seeded; in
-        production this is the POS ingestion boundary, and it is the first item on the
-        gap list rather than a solved problem.
-      </p>
+      <p className="st-record__note">{ORDER_RECORD.note}</p>
     </div>
   )
 }
@@ -286,6 +341,12 @@ export function StoryPage() {
   const narrow = useMediaQuery(NARROW_QUERY)
   const showTop = useScrolledPast(900)
 
+  /* The floating return control is shown when the reader is deep enough to want
+     it AND no embedded surface is underneath it. See `useClearOfEmbeds`. */
+  const toTopRef = useRef<HTMLButtonElement | null>(null)
+  const clearOfEmbeds = useClearOfEmbeds(toTopRef, showTop)
+  const topVisible = showTop && clearOfEmbeds
+
   const stopId = useStore(featureStopId)
   const idStopId = useStore(idCheckStopId)
   const runId = useStore(featureRunId)
@@ -347,11 +408,7 @@ export function StoryPage() {
       <section className="st-section">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Packed"
-              title="It starts where the POS stops."
-              lede="Manifest is not a point of sale and does not want to be. The order is taken, paid out and packed somewhere else. What crosses the boundary is one record."
-            />
+            <SectionHead {...SECTIONS.packed} />
           </Reveal>
           <Reveal delayMs={60}>
             <OrderRecord stopId={stopId} />
@@ -363,11 +420,7 @@ export function StoryPage() {
       <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Dispatched"
-              title="The map is the page."
-              lede="No app chrome hosting a map widget. The console is the map, with the run rails and the event feed floating over it. Runs start, stops resequence, ETAs drift, and a stop that will miss its window turns amber before it misses it."
-            />
+            <SectionHead {...SECTIONS.dispatched} />
           </Reveal>
           <Reveal delayMs={60}>
             <EmbedFrame
@@ -390,11 +443,7 @@ export function StoryPage() {
       <section className="st-section">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="En route"
-              title="Two screens, one state."
-              lede="The driver's ticket and the customer's tracking link are different products with different jobs, and they are reading the same store. When the van moves, both move. Nothing is polled, nothing is reconciled, and neither screen knows whether a simulation or a real phone is driving it."
-            />
+            <SectionHead {...SECTIONS.enRoute} />
           </Reveal>
           <div className="st-pair">
             <Reveal delayMs={60}>
@@ -433,44 +482,35 @@ export function StoryPage() {
       <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="At the door"
-              title="The gate that cannot be skipped."
-              lede="Florida medical delivery turns on one thing: a verified 21+ ID at every transfer. So it is not a checkbox on the closeout screen, it is a state the stop has to pass through."
-            />
+            <SectionHead {...SECTIONS.idCheck} />
           </Reveal>
           <div className="st-split">
             <Reveal delayMs={60}>
               <EmbedFrame
                 kind="phone"
                 stage={{ width: 390, height: 660 }}
-                caption="Full screen, no dismiss, verdict only."
+                caption={ID_CHECK.frameCaption}
               >
                 <DriverIdEmbed stopId={idStopId} />
               </EmbedFrame>
             </Reveal>
+            {/* ROUND-1 FIX: this column used to answer a compliance question
+                with a TypeScript excerpt and the phrase "the invariant lives in
+                the store". It now states the rule the way the rule is written,
+                and the implementation is intact one tap down. */}
             <Reveal delayMs={120} className="st-split__aside">
-              <p className="st-note">
-                The invariant lives in the store, not in the screen. A stop cannot be closed
-                against an unverified ID even by driving the state directly, and a failed
-                check does not fall through to closed either: it lands the stop in{' '}
-                <code className="st-code">exception</code>, which the dispatcher and the
-                manifest both see.
-              </p>
-              <figure className="st-snippet">
-                <pre>
-                  <code>{`closeStop: (stopId, payment) => {
-  const stop = get().stops[stopId]
-  if (!stop) return
-  // the app enforces the law's shape: no close without a verified ID
-  if (!stop.idChecked) return`}</code>
-                </pre>
-                <figcaption>src/store.ts</figcaption>
-              </figure>
-              <p className="st-note st-note--dim">
-                No camera and no scanner. That was cut on purpose: hardware the demo cannot
-                honestly show is hardware it does not pretend to have.
-              </p>
+              <p className="st-note">{ID_CHECK.rule}</p>
+              <p className="st-note">{ID_CHECK.fail}</p>
+              <p className="st-note st-note--dim">{ID_CHECK.noHardware}</p>
+              <Disclosure summary={TECHNICAL_SUMMARY}>
+                <p className="st-note">{ID_CHECK_TECHNICAL.body}</p>
+                <figure className="st-snippet">
+                  <pre>
+                    <code>{ID_CHECK_TECHNICAL.code}</code>
+                  </pre>
+                  <figcaption>{ID_CHECK_TECHNICAL.caption}</figcaption>
+                </figure>
+              </Disclosure>
             </Reveal>
           </div>
         </div>
@@ -480,11 +520,7 @@ export function StoryPage() {
       <section className="st-section">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Closeout"
-              title="Money is a state, not a transaction."
-              lede="No card is read and no funds move. Cash does the arithmetic a driver actually does at the door; debit and digital walk an honest ladder that says SIMULATED where a real terminal would say APPROVED."
-            />
+            <SectionHead {...SECTIONS.closeout} />
           </Reveal>
           <div className="st-split">
             <Reveal delayMs={60}>
@@ -546,11 +582,7 @@ export function StoryPage() {
       <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Compliance"
-              title="The document that rides with the van."
-              lede="Every run carries a printable manifest: transport record, ordered stops, custody log with an ID stamp per transfer, signature rules. It is deliberately formal, because it is the artifact an inspector asks for and a friendly one would be worse."
-            />
+            <SectionHead {...SECTIONS.compliance} />
           </Reveal>
           <Reveal delayMs={60}>
             <EmbedFrame
@@ -568,6 +600,12 @@ export function StoryPage() {
               <ManifestEmbed runId={runId} />
             </EmbedFrame>
           </Reveal>
+          {/* The audit-trail claim, moved down from "how it works" in round 1.
+              It belongs under the document it is a claim about, and moving it
+              is half of what shortened the section below. */}
+          <Reveal delayMs={90}>
+            <p className="st-note st-under">{MECHANISM_RECORD.body}</p>
+          </Reveal>
         </div>
       </section>
 
@@ -575,49 +613,35 @@ export function StoryPage() {
       {/* SPEC addendum: the plain-language mechanism section, deliberately
           placed after the compliance document and before the numbers. By here
           the reader has seen the whole lifecycle and is entitled to ask what
-          Manifest actually is; the numbers only mean something once they know. */}
+          Manifest actually is; the numbers only mean something once they know.
+
+          ROUND-1 FIX (length). This section was a one-line eyebrow, a lede that
+          restated the hero almost verbatim, the diagram, two prose blocks, and
+          a numbered list under a heading announcing how many items it had —
+          three quarters of the way down a page a phone reviewer measured at
+          about thirteen thousand pixels, and the place he nearly stopped
+          reading. It is now the diagram and two sentences. Nothing that was
+          only said here was deleted: the audit-trail block moved up under the
+          manifest, and the seeded-POS caveat moved down to the closing note,
+          which is the honest place for it. */}
       <section className="st-section">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="How it works"
-              title="One layer, between the counter and the door."
-              lede="Manifest is not a point of sale, a payments company or a compliance consultancy. It is the layer that owns a delivery from the moment the bag is sealed to the moment it is handed over at the door, and it runs on top of the system you already bought."
-            />
+            <SectionHead {...SECTIONS.mechanism} />
           </Reveal>
 
           <Reveal delayMs={60}>
             <MechanismStrip />
           </Reveal>
 
-          <div className="st-mech">
-            <Reveal delayMs={90}>
-              <div className="st-mech__block">
-                <p className="st-mech__label">{MECHANISM_HANDOFF.label}</p>
-                <p className="st-note">{MECHANISM_HANDOFF.body}</p>
-                <p className="st-note st-note--dim">{MECHANISM_HANDOFF.caveat}</p>
-              </div>
-            </Reveal>
-            <Reveal delayMs={120}>
-              <div className="st-mech__block">
-                <p className="st-mech__label">{MECHANISM_RECORD.label}</p>
-                <p className="st-note">{MECHANISM_RECORD.body}</p>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* The takeaway, stated as sentences rather than as bullets, because
-              the job of this block is to be repeated out loud by somebody who
-              will not have the page open. */}
-          <Reveal delayMs={150}>
-            <div className="st-repeat">
-              <p className="st-repeat__head">Three sentences you can repeat in a meeting</p>
-              <ol className="st-repeat__list">
-                {MECHANISM_SENTENCES.map((line) => (
-                  <li key={line.slice(0, 28)}>{line}</li>
-                ))}
-              </ol>
-            </div>
+          {/* Sentences rather than bullets, because the job of this block is to
+              be repeated out loud by somebody who will not have the page open. */}
+          <Reveal delayMs={90}>
+            <ol className="st-repeat__list st-repeat__list--bare">
+              {MECHANISM_SENTENCES.map((line) => (
+                <li key={line.slice(0, 28)}>{line}</li>
+              ))}
+            </ol>
           </Reveal>
         </div>
       </section>
@@ -626,21 +650,27 @@ export function StoryPage() {
       <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Measured"
-              title="Load is a number, not an adjective."
-              lede="The live mode behind the demo publishes driver GPS over Supabase Realtime. Here is what that transport did when it was actually measured, on a dated run, with the script in this repo."
-            />
+            <SectionHead {...SECTIONS.measured} />
           </Reveal>
-          <Reveal delayMs={60}>
-            <ProofTable />
-          </Reveal>
+          {/* ROUND-1 FIX: the eight-column percentile table used to be the first
+              thing in this section. `p50` and `p95` are not words, they are
+              notation, and an operations reader was asked to parse them before
+              being told what they meant. The finding leads in plain language
+              now; the table is unchanged, one tap below. */}
           <Reveal delayMs={90}>
             <div className="st-stats">
               <div className="st-stat">
                 <span className="numeral numeral--sm">0%</span>
                 <span className="st-stat__label">
-                  {`Message loss at every tier. ${pingsSent.toLocaleString()} pings sent, ${pingsReceived.toLocaleString()} received.`}
+                  {`${MEASURED.lossLabel} ${pingsSent.toLocaleString()} position updates sent, ${pingsReceived.toLocaleString()} received.`}
+                </span>
+              </div>
+              <div className="st-stat">
+                <span className="numeral numeral--sm">
+                  {`${Math.round(BROADCAST_WORST.p50Ms)} ms`}
+                </span>
+                <span className="st-stat__label">
+                  {`${MEASURED.latencyLead} ${Math.round(BROADCAST_WORST.p50Ms)} ms ${MEASURED.latencyTail} ${Math.round(BROADCAST_WORST.p95Ms)} ms, at the worst of the three fleet sizes.`}
                 </span>
               </div>
               <div className="st-stat">
@@ -657,6 +687,12 @@ export function StoryPage() {
                 </span>
               </div>
             </div>
+          </Reveal>
+          <Reveal delayMs={110}>
+            <Disclosure summary={TECHNICAL_SUMMARY} className="st-more--wide">
+              <p className="st-note">{MEASURED.technicalNote}</p>
+              <ProofTable />
+            </Disclosure>
           </Reveal>
           <Reveal delayMs={120}>
             <div className="st-caveats">
@@ -698,11 +734,7 @@ export function StoryPage() {
       <section className="st-section st-section--tint">
         <div className="st-wrap">
           <Reveal>
-            <SectionHead
-              step="Explore"
-              title="Now open the real thing."
-              lede="No gate, no login, no contact form, nothing collected. Every surface below is the same running fleet you have been watching."
-            />
+            <SectionHead {...SECTIONS.explore} />
           </Reveal>
           <Reveal delayMs={60}>
             <nav className="st-links" aria-label="Live surfaces">
@@ -744,6 +776,27 @@ export function StoryPage() {
               </Link>
             </nav>
           </Reveal>
+
+          {/* ROUND-1 FIX. The page used to argue its case and then simply stop:
+              a reviewer's words were that it "sells like a vendor and signs off
+              like a resume", with no next step of any kind. This is the whole
+              next step — what the demo actually is, what it is missing, and
+              where the person who built it is. No booking widget and no pricing:
+              on a page whose entire argument is that nothing is oversold, a fake
+              call to action would be the first thing that was. */}
+          <Reveal delayMs={90}>
+            <div className="st-standing">
+              <p className="st-standing__label">{NEXT_STEP.label}</p>
+              <p className="st-note">{NEXT_STEP.body}</p>
+              <p className="st-note st-standing__contact">
+                {`${NEXT_STEP.contact} `}
+                <a href={NEXT_STEP.href} target="_blank" rel="noreferrer noopener">
+                  {NEXT_STEP.linkText}
+                </a>
+                .
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -770,11 +823,12 @@ export function StoryPage() {
       </footer>
 
       <button
+        ref={toTopRef}
         type="button"
-        className={`btn st-totop${showTop ? ' is-in' : ''}`}
+        className={`btn st-totop${topVisible ? ' is-in' : ''}`}
         onClick={toTop}
         aria-label="Back to top"
-        tabIndex={showTop ? 0 : -1}
+        tabIndex={topVisible ? 0 : -1}
       >
         <span aria-hidden="true">&uarr;</span>
       </button>

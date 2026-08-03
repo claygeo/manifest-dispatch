@@ -210,6 +210,39 @@ export function LazyBlock({
   )
 }
 
+/* --------------------------------------------------------- disclosure ---- */
+
+/**
+ * A collapsed technical aside.
+ *
+ * ROUND-1 FIX. The page used to answer an operator's compliance question with a
+ * TypeScript excerpt and a percentile table, inline, on the main path. Neither
+ * was wrong and neither is deleted — they are behind this, one tap away, so the
+ * reader who wants them can have them and the reader who does not is not asked
+ * to step over them.
+ *
+ * Native `<details>` on purpose: it is closed on first paint with no JavaScript
+ * involved, so nothing on the page reflows after it renders, it is keyboard
+ * operable and announced correctly with no ARIA of our own, and it prints open
+ * in browsers that expand details for print.
+ */
+export function Disclosure({
+  summary,
+  children,
+  className,
+}: {
+  summary: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <details className={`st-more${className ? ` ${className}` : ''}`}>
+      <summary className="st-more__summary">{summary}</summary>
+      <div className="st-more__body">{children}</div>
+    </details>
+  )
+}
+
 /* ------------------------------------------------------------- reveal ---- */
 
 /**

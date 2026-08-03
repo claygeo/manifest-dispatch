@@ -61,6 +61,20 @@
   justify-content: flex-end;
 }
 
+/* ROUND-1 FIX: a quiet word naming the control beside it, so the theme pair is
+   not two unexplained words in the corner of the map. Type, not a chip — it
+   labels a control rather than reporting a value, and a second pill here would
+   read as another piece of fleet state. */
+.dc-tool-label {
+  padding-left: 4px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------- left rail ---- */
 
 .dc-rail {

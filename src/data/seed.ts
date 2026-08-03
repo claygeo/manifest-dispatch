@@ -153,6 +153,102 @@ function orderCodeFor(runIndex: number, stopIndex: number): string {
   return `MFST-${base + Math.floor(r() * 6)}`
 }
 
+/* -------------------------------------------------- planner practice pool -- */
+
+/**
+ * The `/plan` sandbox's own order pool.
+ *
+ * These are NOT the fleet's orders. The planner used to read its pool straight
+ * off the seeded board, which meant the same code could read "Delivered, cash
+ * $79.25" on `/dispatch` and "unrouted, packed" on `/plan` at the same moment,
+ * under two different delivery windows. For a product whose whole claim is one
+ * state and no second system, that is the most damaging thing on the site: it
+ * reads as staged. So the planner gets its own orders — its own code series
+ * (`MFST-43xx`, disjoint from the fleet's `MFST-41xx`/`42xx` and from the
+ * `MFST-9xxx` a dispatch mints), its own customers, its own baskets.
+ *
+ * What they DO share is the doorstep. The leg matrix measured exactly twelve
+ * places, so a practice order at an address the matrix has never seen would
+ * have to have its travel times invented — and this screen's entire argument is
+ * that its numbers are measurements. Two different customers at one address on
+ * different nights is ordinary last-mile reality, so the practice orders take
+ * the seeded street address plus their own unit.
+ */
+interface PlannerIdentity {
+  name: string
+  /** Unit at that address. Empty for a single-family doorstep. */
+  unit: string
+}
+
+/**
+ * One per seeded doorstep, in flat seed order. Names are chosen so no
+ * `shortName` ("First L.") collides with a seeded customer — a planner screen
+ * showing "Dana W." next to the board's "Dana W." would put the confusion back.
+ */
+const PLANNER_IDENTITIES: PlannerIdentity[] = [
+  { name: 'Elena Vasquez', unit: 'Apt 2' },
+  { name: 'Desmond Pryor', unit: 'Unit B' },
+  { name: 'Harriet Lomax', unit: '' },
+  { name: 'Omar Haddad', unit: 'Apt 4C' },
+  { name: 'Bianca Ferrell', unit: 'Unit 3' },
+  { name: 'Grant Okafor', unit: '' },
+  { name: 'Isabel Moreau', unit: 'Apt 1' },
+  { name: 'Terrence Boyle', unit: '' },
+  { name: 'Yuki Tanaka', unit: 'Suite 210' },
+  { name: 'Camille Duarte', unit: 'Unit A' },
+  { name: 'Rashid Mensah', unit: 'Apt 6' },
+]
+
+/** A practice order the `/plan` pool offers. Never on the dispatch board. */
+export interface PlannerPoolOrder {
+  /** The seeded stop whose DOORSTEP this order is delivered to — the matrix seam. */
+  atStopId: string
+  orderCode: string
+  customer: string
+  address: string
+  items: { name: string; qty: number }[]
+  amountDue: number
+  payment: PaymentMethod
+}
+
+function buildPlannerPool(): PlannerPoolOrder[] {
+  const doorsteps: { stopId: string; address: string }[] = []
+  for (const route of ROUTES.runs) {
+    route.stops.forEach((seedStop, index) => {
+      doorsteps.push({ stopId: `${route.id}-${index + 1}`, address: seedStop.address })
+    })
+  }
+
+  if (doorsteps.length !== PLANNER_IDENTITIES.length) {
+    throw new Error(
+      `[seed] the planner pool has ${PLANNER_IDENTITIES.length} identities for ${doorsteps.length} seeded doorsteps — add or remove one`,
+    )
+  }
+
+  return doorsteps.map((doorstep, i) => {
+    const who = PLANNER_IDENTITIES[i]
+    const key = `plan-pool#${i}`
+    const { items, amountDue } = buildBasket(key)
+    return {
+      atStopId: doorstep.stopId,
+      // spaced by three so the series reads like a day's tickets, not a counter
+      orderCode: `MFST-${4301 + i * 3}`,
+      customer: who.name,
+      address: who.unit ? `${doorstep.address}, ${who.unit}` : doorstep.address,
+      items,
+      amountDue,
+      payment: paymentFor(key),
+    }
+  })
+}
+
+/**
+ * Static for the session. The pool's promised WINDOWS move with the demo clock
+ * (see `plan/planRun.ts#poolOrders`) but who is waiting, at which door, for
+ * what, does not.
+ */
+export const PLANNER_POOL: PlannerPoolOrder[] = buildPlannerPool()
+
 /* ------------------------------------------------------------- dispatch --- */
 
 interface RunPlan {

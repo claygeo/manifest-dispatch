@@ -13,6 +13,7 @@
  */
 
 import { identityFor } from './identity'
+import { useStore } from '../store'
 import type { Stop } from '../types'
 
 export interface IdCheckScreenProps {
@@ -22,7 +23,14 @@ export interface IdCheckScreenProps {
 }
 
 export function IdCheckScreen({ stop, onPass, onFail }: IdCheckScreenProps) {
-  const id = identityFor(stop)
+  /**
+   * The age on this card is computed against the clock the whole app is running
+   * on, not against the machine's wall clock, so the number a driver reads is
+   * the number that was true at the moment of the delivery being simulated.
+   * `simNowMs` is the same clock the manifest stamps custody times with.
+   */
+  const nowMs = useStore((s) => s.simNowMs)
+  const id = identityFor(stop, nowMs || Date.now())
 
   return (
     <>
