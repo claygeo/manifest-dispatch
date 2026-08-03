@@ -36,6 +36,14 @@ Scale keeps v1's glance-anchor discipline (each panel: at most ONE display-size
 number, supporting data small) — that's information design, not styling, and it
 stays. Weights and case do the softening.
 
+**Readability floors (operator feedback ×2, 2026-08-02 — non-negotiable):**
+Familjen has a smaller x-height than Plex Sans, so v1's pixel sizes read smaller
+than they used to. Absolute floor **12px** for anything a user reads (labels,
+chips, timestamps, mono codes included); dense-data rows 12.5–13px; body copy
+**14px**; captions/notes 13px. At sizes below 14px, Familjen renders at weight
+**500**, never 400. Mono floors at 12px. Line-height ≥1.45 on multi-line copy.
+A `readability.test.ts`-style check should enforce the floor where feasible.
+
 ## Palette
 
 NOT the Claude palette — the fonts are the only Claude borrow. The palette is
