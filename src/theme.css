@@ -53,10 +53,10 @@
      case do the softening. */
   --type-display: 34px;
   --type-display-sm: 28px;
-  --type-head: 13.5px; /* section headers */
-  --type-body: 13px;
-  --type-micro: 11px;
-  --type-plate: 10.5px; /* mono id suffixes only */
+  --type-head: 15px; /* section headers */
+  --type-body: 14px;
+  --type-micro: 12.5px;
+  --type-plate: 12px; /* mono id suffixes only */
 
   --lh-display: 1;
   --lh-body: 1.45;
@@ -478,6 +478,7 @@ a {
 /* Micro rows — 11–13px only. No middle sizes. */
 .micro {
   font-size: var(--type-micro);
+  font-weight: 500;
   line-height: 1.45;
   color: var(--ink-2);
 }
@@ -630,7 +631,7 @@ a {
   background: var(--panel-glass) !important;
   color: var(--ink-2) !important;
   font-family: var(--font-ui) !important;
-  font-size: 9.5px !important;
+  font-size: 11px !important;
   letter-spacing: 0;
   border-radius: var(--radius-tight) 0 0 0;
 }
