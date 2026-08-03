@@ -97,8 +97,8 @@ export const BROADCAST_RUN = {
 
 export const TEST_COUNTS = {
   /** `npm test` — vitest, green. */
-  unit: 431,
-  unitFiles: 18,
+  unit: 502,
+  unitFiles: 24,
   /** `npm run test:rpc` — contract checks fired at the real Supabase RPCs. */
   rpc: 25,
 } as const

@@ -23,6 +23,7 @@ import type { Selection, Theme } from '../types'
 import { DEPOT, DEPOT_NAME, legsFor, routeLineFor } from '../data/seed'
 import { boundsOf, lerp, lerpAngle, splitLeg, type LngLat } from '../sim/geo'
 import { BASEMAP, buildMapStyle, OVERLAY } from './style'
+import { createMapErrorLog } from './errorLog'
 
 const SRC_ROUTES = 'mf-routes'
 const SRC_STOPS = 'mf-stops'
@@ -584,7 +585,31 @@ export function MapCanvas({
 
     // E2E/bench handle + surfaced GL errors (maplibre swallows them otherwise).
     ;(window as unknown as Record<string, unknown>).__MANIFEST_MAP__ = map
-    map.on('error', (e) => console.error('[map]', e.error?.message ?? e))
+
+    /**
+     * Real defects print in full; a tile outage prints once and then at most one
+     * summary per window. Offline, an unthrottled handler put dozens of
+     * identical AJAXError lines in the console within seconds — see ./errorLog.
+     */
+    const errorLog = createMapErrorLog()
+    map.on('error', (e) => {
+      const err = e.error as (Error & { status?: number; url?: string }) | undefined
+      const line = errorLog.error(
+        {
+          name: err?.name,
+          message: err?.message ?? String(err ?? e),
+          status: err?.status,
+          url: err?.url,
+        },
+        Date.now(),
+      )
+      if (line) console.error(line)
+    })
+    map.on('sourcedata', (e) => {
+      if (!e.isSourceLoaded) return
+      const line = errorLog.success(Date.now())
+      if (line) console.info(line)
+    })
 
     /**
      * Runs on a microtask, not inside the 'style.load' dispatch: honouring a

@@ -56,7 +56,7 @@ carries chroma.
 - Field: `#F4F1EA` page · cards `#FFFFFF` · borders `#E3DED2`
 - Map: land `#F2EEE4`, water `#DDE3DE`, parks `#E6EBDF`, roads white ramps,
   labels warm grey — the UI field IS the land tone one step up
-- Ink: `#262521` primary · `#6E6759` secondary · `#A69E8F` disabled
+- Ink (crisp-on-cream, operator pick 2026-08-02): `#191813` primary (~16:1) · `#45423A` secondary (~9:1) · `#A69E8F` disabled only
 - **Accent (fern): `#4E7A5A`** — the only action/live hue: buttons, active
   routes, live drivers, en-route states, selection glow. Hover `#426A4E`.
   Delivered/positive dims to `#83A28C`. The map's park/vegetation tones echo

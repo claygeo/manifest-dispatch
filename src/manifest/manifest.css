@@ -147,6 +147,13 @@
   flex: none;
 }
 
+/* The exception count under the closed ratio. Small, but it is the line that
+   stops the header disagreeing with the custody log. */
+.mf-metric-note {
+  margin-top: 2px;
+  letter-spacing: 0.08em;
+}
+
 /* ---- ruled field block: a form, not a card grid ---- */
 
 .mf-grid {
@@ -392,6 +399,9 @@
     border-top: 2px solid #000000;
     border-bottom: 1px solid #000000;
     padding: 5px 0;
+    /* A section header stranded at the foot of a page opens nothing. */
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .mf-masthead,
@@ -431,6 +441,41 @@
   .mf-notes li {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* The signature block is ONE artifact, not four independent rules.
+     `.mf-sig { break-inside: avoid }` above only kept an INDIVIDUAL rule off a
+     page seam; the block itself still split, so a printed manifest could put
+     two signature lines at the foot of one page and the other two — plus the
+     plate that names them — on the next, with nothing on either page saying
+     they belong together. A compliance sheet whose signatures are severed
+     across a fold is the one page break that actually costs something.
+
+     `break-inside: avoid` alone does not fix it: Chrome does not honour it on a
+     GRID container when paginating, which is measurable — a page.pdf() sweep
+     that walks the block down the page splits it either way. So on paper the
+     block stops being a grid and becomes an ordinary block box (which Chrome
+     does honour) with two inline-block columns, which is visually identical and
+     actually unbreakable. */
+  .mf-sigs {
+    display: block;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    font-size: 0; /* kills the whitespace gap between the inline-block columns */
+  }
+
+  .mf-sig {
+    display: inline-block;
+    width: 49%;
+    margin: 0 0 16px;
+    vertical-align: top;
+    /* back to the document's own floor — the line above is a layout trick, and
+       nothing inside a signature block is allowed to inherit an unreadable size */
+    font-size: var(--type-plate);
+  }
+
+  .mf-sig:nth-child(2n) {
+    margin-left: 2%;
   }
 
   .mf-sheet .chip {

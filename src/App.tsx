@@ -10,7 +10,7 @@
  * to `/dispatch` when the story took the front door.
  */
 
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { createSimEngine, type SimEngine } from './sim/engine'
 import StoryPage from './story/StoryPage'
@@ -18,6 +18,7 @@ import ConsolePage from './console/ConsolePage'
 import DriverPage from './driver/DriverPage'
 import TrackingPage from './tracking/TrackingPage'
 import ManifestPage from './manifest/ManifestPage'
+import { LazyRoute } from './plan/RouteBoundary'
 
 /**
  * `/plan` is the one lazily-loaded surface.
@@ -28,8 +29,12 @@ import ManifestPage from './manifest/ManifestPage'
  * where SPEC.md's definition of done asks for first paint under three seconds.
  * As a lazy route it becomes its own chunk that only a visitor who opens the
  * planner ever downloads.
+ *
+ * One factory, referenced from two places, on purpose: the route element and
+ * the idle prefetch below have to resolve to the SAME chunk, or the prefetch
+ * warms something the click never asks for.
  */
-const PlanPage = lazy(() => import('./plan/PlanPage'))
+const loadPlanPage = () => import('./plan/PlanPage')
 
 function useSimEngine(): void {
   const ref = useRef<SimEngine | null>(null)
@@ -42,21 +47,58 @@ function useSimEngine(): void {
   }, [])
 }
 
+/**
+ * Warm the planner chunk once the shell has stopped being busy.
+ *
+ * Lazy-loading `/plan` moved a 783 kB matrix off first paint, and it also moved
+ * the fetch to click time — which is the one moment a connection is allowed to
+ * be down and the visitor still expects a screen. Prefetching on idle closes
+ * that window to the first few seconds of the session instead of leaving it
+ * open for as long as the tab lives.
+ *
+ * Speculative, so it fails silently: a rejected prefetch is not an error the
+ * visitor did anything to cause, and `RouteBoundary` is what handles the real
+ * failure if they later click through anyway. `requestIdleCallback` is skipped
+ * by Safari, hence the timeout fallback — and it never runs before the sim
+ * engine and the map have had the main thread to themselves.
+ */
+function usePrefetchPlan(): void {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    let cancelled = false
+    const warm = () => {
+      if (!cancelled) void loadPlanPage().catch(() => undefined)
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 4_000 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(id)
+      }
+    }
+    const id = window.setTimeout(warm, 2_000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(id)
+    }
+  }, [])
+}
+
 export function App() {
   useSimEngine()
+  usePrefetchPlan()
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/dispatch" element={<ConsolePage />} />
-        <Route
-          path="/plan"
-          element={
-            <Suspense fallback={<div className="app-loading">Loading the planner…</div>}>
-              <PlanPage />
-            </Suspense>
-          }
-        />
+        {/*
+         * Boundary OUTSIDE the Suspense, not inside: a rejected chunk fetch is
+         * thrown at the first boundary above the suspended tree, and a boundary
+         * nested under the Suspense would never see it. Without one, this route
+         * takes the entire app down with it — see RouteBoundary.tsx.
+         */}
+        <Route path="/plan" element={<LazyRoute load={loadPlanPage} what="The planner" />} />
         <Route path="/driver" element={<DriverPage />} />
         <Route path="/t/:orderCode" element={<TrackingPage />} />
         <Route path="/manifest/:runId" element={<ManifestPage />} />

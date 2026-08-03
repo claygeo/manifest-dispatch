@@ -235,6 +235,31 @@ export interface PlannedDispatch {
   stopIds: string[]
 }
 
+/**
+ * Rebuild the dispatch handle for a planned run that is still on the board.
+ *
+ * `/plan` used to hold its dispatched run in component state alone, so walking
+ * to `/dispatch` to watch the run drive and coming back unmounted the planner
+ * and lost the reference: the panel returned blank while the run it had just
+ * created was still crossing the map. The run itself was never lost — it is
+ * store state, same as the seeded fleet — so the fix is to keep the POINTER in
+ * the store too and re-derive the rest from the run on mount.
+ *
+ * Total by construction: a pointer with no run behind it (the demo fleet reset
+ * between visits) returns null rather than a handle to nothing, which is what
+ * puts the planner back in its fresh state instead of a dangling watch panel.
+ */
+export function restorePlannedRun(view: {
+  plannedRunId: string | null
+  runs: Record<string, Run>
+}): PlannedDispatch | null {
+  const runId = view.plannedRunId
+  if (!runId) return null
+  const run = view.runs[runId]
+  if (!run) return null
+  return { runId, manifestId: run.manifestId, label: run.label, stopIds: run.stops }
+}
+
 /** `MFST-9xxx`, distinct from the seeded `MFST-4xxx`, and unique on the board. */
 function planOrderCode(taken: Set<string>, seq: number, index: number): string {
   const base = `MFST-9${seq % 10}${String(index + 1).padStart(2, '0')}`
@@ -341,6 +366,8 @@ export function dispatchPlannedRun(
   })
 
   store.startRun(runId)
+  /* The planner's own bookmark — see `restorePlannedRun`. */
+  store.setPlannedRun(runId)
 
   return { runId, manifestId, label, stopIds: run.stops }
 }

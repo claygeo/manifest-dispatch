@@ -24,11 +24,13 @@
  * ALL DATA IS FICTIONAL. Not affiliated with any licensed operator.
  */
 
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EXCEPTION_LABEL, useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
-import { isLateArrivalNote, runCounts, runStops, windowLabel, windowState } from '../selectors'
+import { docTitle, useDocTitle } from '../ui/useDocTitle'
+import { isLateArrivalNote, runStops, windowLabel, windowState } from '../selectors'
+import { manifestCounts, manifestTotals } from './counts'
 import { DEPOT_NAME } from '../data/seed'
 import { seededRange } from '../sim/geo'
 import {
@@ -40,7 +42,7 @@ import {
   RUN_STATUS_LABEL,
   STOP_STATUS_LABEL,
 } from '../format'
-import type { DeliveryEvent, Stop } from '../types'
+import type { DeliveryEvent } from '../types'
 import './manifest.css'
 
 /* Fictional facility record. The demo has one origin; it is invented. */
@@ -114,24 +116,6 @@ function transportFor(runId: string): {
   }
 }
 
-/**
- * Browsers print `document.title` in the page header, so naming the tab after
- * the manifest id is what puts the document id on every printed sheet.
- */
-function useDocumentTitle(title: string): void {
-  useEffect(() => {
-    const previous = document.title
-    document.title = title
-    return () => {
-      document.title = previous
-    }
-  }, [title])
-}
-
-function unitsOf(stop: Stop): number {
-  return stop.items.reduce((n, item) => n + item.qty, 0)
-}
-
 function clockOr(ms: number | null | undefined): string {
   return ms ? formatClock(ms) : '—'
 }
@@ -150,7 +134,9 @@ export function ManifestPage() {
   const stamps = useMemo(() => buildStamps(events), [events])
 
   const run = runs[runId]
-  useDocumentTitle(run ? `${run.manifestId} — delivery manifest` : 'Delivery manifest')
+  // Browsers print `document.title` in the page header, so naming the tab after
+  // the manifest id is what puts the document id on every printed sheet.
+  useDocTitle(docTitle(run?.manifestId ?? ''))
 
   if (!run) {
     return (
@@ -179,15 +165,18 @@ export function ManifestPage() {
   const index = runOrder.indexOf(run.id)
   const letter = String.fromCharCode(65 + Math.max(0, index))
   const list = runStops(view, run.id)
-  const counts = runCounts(view, run.id)
+  /*
+   * NOT `runCounts`. That selector folds exceptions into "done", which is right
+   * for the console (the driver has finished with the stop) and wrong for a
+   * custody document: an order that came back undelivered was never closed. See
+   * counts.ts — the header used to print 4/4 above a custody log that showed a
+   * CANCELLED row and an unsigned rule.
+   */
+  const counts = manifestCounts(list)
+  const totals = manifestTotals(list)
   const transport = transportFor(run.id)
 
   const dispatched = events.find((e) => e.runId === run.id && e.type === 'run_started')
-  const totalAmount = list.reduce((sum, s) => sum + s.amountDue, 0)
-  const totalUnits = list.reduce((sum, s) => sum + unitsOf(s), 0)
-  const collected = list
-    .filter((s) => s.status === 'delivered')
-    .reduce((sum, s) => sum + s.amountDue, 0)
   /* Window compliance, split honestly: one number is a projection about stops
      still open, the other is a recorded fact about stops already served. */
   const projectedLate = list.filter(
@@ -209,7 +198,7 @@ export function ManifestPage() {
       <div className="mf-bar no-print">
         <Wordmark subtitle="Compliance" />
         <DemoChip />
-        <span className="chip">{`Stops ${counts.done}/${counts.total} closed`}</span>
+        <span className="chip">{`Stops ${counts.screenLabel}`}</span>
         <div className="mf-bar-end">
           <Link className="btn" to="/dispatch">
             Back to dispatch
@@ -236,7 +225,14 @@ export function ManifestPage() {
           <div className="mf-metric">
             <div className="label">STOPS CLOSED</div>
             {/* the ONE display numeral this document is allowed */}
-            <div className="numeral numeral--sm">{`${counts.done}/${counts.total}`}</div>
+            <div className="numeral numeral--sm">{`${counts.closed}/${counts.total}`}</div>
+            {/* An undelivered order is not a closed one, and the header is the
+                first place a compliance reader looks. */}
+            {counts.exceptions > 0 ? (
+              <div className="micro micro--mono mf-metric-note mf-flag">
+                {`${counts.exceptions} EXCEPTION${counts.exceptions === 1 ? '' : 'S'}`}
+              </div>
+            ) : null}
           </div>
         </header>
 
@@ -266,7 +262,7 @@ export function ManifestPage() {
 
         <div className="plate plate--quiet">
           <span>MANIFEST STOPS</span>
-          <span>{`${list.length} ORDERS · ${totalUnits} UNITS`}</span>
+          <span>{`${totals.orders} ORDERS · ${totals.units} UNITS`}</span>
         </div>
 
         <div className="mf-scroll">
@@ -321,10 +317,12 @@ export function ManifestPage() {
                   </Fragment>
                 )
               })}
+              {/* Same pass as the header count: `collected` is delivered-only,
+                  which is why the label beside it names the closed ratio. */}
               <tr className="mf-totals">
-                <td colSpan={5}>{`TOTALS — ${list.length} STOPS · ${totalUnits} UNITS`}</td>
-                <td className="mf-num">{formatMoney(totalAmount)}</td>
-                <td colSpan={2}>{`COLLECTED ${formatMoney(collected)}`}</td>
+                <td colSpan={5}>{`TOTALS — ${totals.orders} STOPS · ${totals.units} UNITS`}</td>
+                <td className="mf-num">{formatMoney(totals.amount)}</td>
+                <td colSpan={2}>{`COLLECTED ${formatMoney(totals.collected)} · ${counts.label}`}</td>
               </tr>
             </tbody>
           </table>

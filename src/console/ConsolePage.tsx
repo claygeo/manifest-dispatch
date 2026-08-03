@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MapCanvas, { type MapPadding } from '../map/MapCanvas'
 import { EXCEPTION_LABEL, runIdOf, useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
+import { docTitle, useDocTitle } from '../ui/useDocTitle'
 import { cancelledStopIds, fleetCounts, recentEvents, runStops } from '../selectors'
 import type { DeliveryEvent, ExceptionReason } from '../types'
 import RunPanel from './RunPanel'
@@ -94,6 +95,8 @@ export function ConsolePage({ onEnterLive = defaultEnterLive }: ConsolePageProps
   const [padding, setPadding] = useState<MapPadding>(openingPadding)
 
   const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useDocTitle(docTitle('Dispatch'))
 
   const view = useMemo(() => ({ runs, runOrder, stops }), [runs, runOrder, stops])
   const fleet = fleetCounts(view)

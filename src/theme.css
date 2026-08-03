@@ -24,8 +24,8 @@
   --border: #3a3e38;
   --border-strong: #4c5149;
 
-  --ink: #edeee7;
-  --ink-2: #c2c6ba;
+  --ink: #f2f3ec;
+  --ink-2: #c9cdc1;
   --ink-3: #767b6e;
 
   /* fern — the ONE action/live hue */
@@ -95,11 +95,11 @@
     --field: #f4f1ea;
     --panel: #ffffff;
     --panel-glass: rgba(255, 255, 255, 0.88);
-    --border: #e3ded2;
+    --border: #dcd7ca;
     --border-strong: #cfc7b5;
 
-    --ink: #262521;
-    --ink-2: #565044;
+    --ink: #191813;
+    --ink-2: #45423A;
     --ink-3: #a69e8f;
 
     --accent: #4e7a5a;
@@ -128,11 +128,11 @@
   --field: #f4f1ea;
   --panel: #ffffff;
   --panel-glass: rgba(255, 255, 255, 0.88);
-  --border: #e3ded2;
+  --border: #dcd7ca;
   --border-strong: #cfc7b5;
 
-  --ink: #262521;
-  --ink-2: #565044;
+  --ink: #191813;
+  --ink-2: #45423A;
   --ink-3: #a69e8f;
 
   --accent: #4e7a5a;
@@ -613,6 +613,52 @@ a {
   background: var(--field);
   color: var(--ink-2);
   font-size: var(--type-body);
+}
+
+/* Lazy-route FAILURE. Same footprint as the loading state, because it is the
+   same slot: the route could not be fetched, so the route says so and the
+   shell around it keeps running. See src/plan/RouteBoundary.tsx. */
+.app-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--field);
+}
+
+.app-fallback__card {
+  max-width: 460px;
+  padding: 22px;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-soft);
+  background: var(--panel);
+  box-shadow: var(--shadow-ambient);
+}
+
+.app-fallback__line {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.app-fallback__note {
+  margin: 10px 0 0;
+  color: var(--ink-2);
+}
+
+.app-fallback__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.app-fallback__actions .btn {
+  text-decoration: none;
 }
 
 /* ============================================================== map ====== */

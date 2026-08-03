@@ -30,6 +30,7 @@ import LiveBanner from '../live/LiveBanner'
 import { isValidSessionCode, normalizeSessionCode } from '../console/liveSession'
 import { enterLive, leaveLive } from '../live/session'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
+import { docTitle, useDocTitle } from '../ui/useDocTitle'
 import { findStopByOrderCode, runOfStop, runStops, stopsAway, windowLabel } from '../selectors'
 import { driftLabel, etaClock, firstName, formatClock, formatMoney, PAYMENT_TEXT } from '../format'
 import type { DeliveryEvent, Run, Stop } from '../types'
@@ -69,17 +70,6 @@ function stampOf(events: DeliveryEvent[], stopId: string, type: DeliveryEvent['t
   return null
 }
 
-/** A tracking link is usually opened from a text message — name the tab. */
-function useDocumentTitle(title: string): void {
-  useEffect(() => {
-    const previous = document.title
-    document.title = title
-    return () => {
-      document.title = previous
-    }
-  }, [title])
-}
-
 function useNarrow(breakpoint = 760): boolean {
   const [narrow, setNarrow] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= breakpoint,
@@ -105,7 +95,9 @@ export function TrackingPage() {
   const simNowMs = useStore((s) => s.simNowMs)
   const generation = useStore((s) => s.generation)
   const narrow = useNarrow()
-  useDocumentTitle(orderCode ? `${orderCode.toUpperCase()} — tracking` : 'Manifest — tracking')
+  // A tracking link is usually opened from a text message — name the tab after
+  // the order, in the one format every surface uses.
+  useDocTitle(docTitle(orderCode.toUpperCase()))
 
   /**
    * SPEC: "console and tracking page render it exactly like sim data (same

@@ -15,6 +15,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LiveStatus } from '../store'
 import {
+  CLOSED_SLOT,
+  editCodeSlot,
+  regenerateCodeSlot,
+  seedCodeSlot,
+} from '../live/codeSlot'
+import {
   driverJoinUrl,
   generateSessionCode,
   isValidSessionCode,
@@ -56,31 +62,50 @@ export function LiveEntryModal({
   onEnter,
   onDisarm,
 }: LiveEntryModalProps) {
-  const [code, setCode] = useState('')
+  const [slot, setSlot] = useState(CLOSED_SLOT)
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
+  /**
+   * The parent re-creates `onClose` on every render and the console re-renders
+   * on every sim tick, so it must never reach a dependency list. Held in a ref
+   * instead: the Escape listener is installed once per opening and always calls
+   * the current handler.
+   */
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  /**
+   * A 16-character credential is generated, not typed. Opening the dialog with
+   * one already drawn means the dispatcher's job is "copy the link", and the
+   * input stays there for the other half of the story — joining a session a
+   * phone already started.
+   *
+   * Drawn ONCE per opening. `seedCodeSlot` returns the previous slot by identity
+   * when the session has not changed, so the code survives every re-render the
+   * store pushes through the console underneath this dialog — and survives the
+   * dispatcher typing into it, which the render-time draw did not.
+   */
   useEffect(() => {
+    setSlot((prev) => seedCodeSlot(prev, open, armedCode, generateSessionCode))
     if (!open) return
     setCopied(false)
-    // A 16-character credential is generated, not typed. Opening the dialog with
-    // one already drawn means the dispatcher's job is "copy the link", and the
-    // input stays there for the other half of the story — joining a session a
-    // phone already started.
-    setCode(armedCode ?? generateSessionCode())
     const id = window.setTimeout(() => inputRef.current?.focus(), 0)
+    return () => window.clearTimeout(id)
+  }, [open, armedCode])
+
+  useEffect(() => {
+    if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      window.clearTimeout(id)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open, armedCode, onClose])
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   if (!open) return null
 
+  const code = slot.code
   const armed = Boolean(armedCode) && liveStatus !== 'off'
   const valid = isValidSessionCode(code)
   const joinUrl = armedCode ? driverJoinUrl(armedCode) : ''
@@ -141,7 +166,10 @@ export function LiveEntryModal({
               ref={inputRef}
               className="dc-code-input"
               value={code}
-              onChange={(e) => setCode(normalizeSessionCode(e.target.value))}
+              onChange={(e) => {
+                const next = normalizeSessionCode(e.target.value)
+                setSlot((prev) => editCodeSlot(prev, next))
+              }}
               placeholder={'•'.repeat(LIVE_CODE_LENGTH)}
               inputMode="text"
               autoComplete="off"
@@ -155,7 +183,7 @@ export function LiveEntryModal({
             <button
               type="button"
               className="btn"
-              onClick={() => setCode(generateSessionCode())}
+              onClick={() => setSlot((prev) => regenerateCodeSlot(prev, generateSessionCode))}
               disabled={armed}
             >
               Generate

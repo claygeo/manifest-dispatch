@@ -100,6 +100,19 @@ export interface ManifestState {
   liveRunId: string | null
   /** Quality of the most recent live fix. Drives the accuracy ring + GPS rail. */
   liveFix: LiveFix | null
+  /**
+   * The run `/plan` last dispatched, if it is still on the board.
+   *
+   * Additive, and the planner is the only reader. It exists because the watch
+   * panel used to live in component state: click through to `/dispatch` and
+   * back, and `/plan` remounted blank while the run it had just dispatched was
+   * still driving across the map behind it. The run is store state, so the
+   * pointer to it belongs in the store too.
+   *
+   * Cleared by `hydrateFleet` — a fleet reset deletes planner builds, and a
+   * pointer that outlived its run would restore a panel with nothing behind it.
+   */
+  plannedRunId: string | null
 
   /* ---- fleet lifecycle ---- */
   hydrateFleet: (fleet: Fleet, generation: number) => void
@@ -138,6 +151,7 @@ export interface ManifestState {
   setDriverRun: (runId: string | null) => void
   setLiveRun: (runId: string | null) => void
   setLiveFix: (fix: LiveFix | null) => void
+  setPlannedRun: (runId: string | null) => void
 }
 
 function indexById<T extends { id: string }>(list: T[]): Record<string, T> {
@@ -189,6 +203,7 @@ export const useStore = create<ManifestState>((set, get) => ({
   driverRunId: null,
   liveRunId: null,
   liveFix: null,
+  plannedRunId: null,
 
   /* ------------------------------------------------------- lifecycle ---- */
 
@@ -202,6 +217,8 @@ export const useStore = create<ManifestState>((set, get) => ({
       simNowMs: fleet.simEpoch,
       generation,
       selection: null,
+      // the re-seed took every planner build with it
+      plannedRunId: null,
     }),
 
   resetFleet: () => {
@@ -512,6 +529,9 @@ export const useStore = create<ManifestState>((set, get) => ({
     set((s) => (s.liveRunId === liveRunId ? {} : { liveRunId, liveFix: null })),
 
   setLiveFix: (liveFix) => set({ liveFix }),
+
+  setPlannedRun: (plannedRunId) =>
+    set((s) => (s.plannedRunId === plannedRunId ? {} : { plannedRunId })),
 }))
 
 /** Stop ids are `${runId}-${n}` by construction — cheap reverse lookup. */

@@ -39,11 +39,13 @@ import {
   dispatchPlannedRun,
   planRunInput,
   poolOrders,
+  restorePlannedRun,
   shiftEndMs,
   windowRisks,
   type PlannedDispatch,
   type PoolOrder,
 } from './planRun'
+import { completionNote, describeWatch, watchKey } from './watch'
 import { compare } from './display'
 import './plan.css'
 
@@ -82,7 +84,26 @@ export function PlanPage() {
   const [sequence, setSequence] = useState<string[]>([])
   const [lateIndex, setLateIndex] = useState(0)
   const [lateOrder, setLateOrder] = useState<{ order: PoolOrder; verdict: FitResult } | null>(null)
-  const [dispatched, setDispatched] = useState<PlannedDispatch | null>(null)
+  /*
+   * Seeded from the store, not from nothing: a visitor who dispatched a run,
+   * walked to `/dispatch` to watch it drive and came back used to find the
+   * planner blank while their run was still crossing the map. The run lives in
+   * the store; so does the pointer to it. See `restorePlannedRun`.
+   */
+  const [dispatched, setDispatched] = useState<PlannedDispatch | null>(() =>
+    restorePlannedRun(useStore.getState()),
+  )
+
+  /*
+   * The other half of that restore: a bookmark whose run the fleet reset took
+   * away is cleared here rather than in the initialiser above, because a state
+   * initialiser is not allowed to have side effects. Runs once, on mount, and
+   * only when there is actually a stale pointer to drop.
+   */
+  useEffect(() => {
+    const state = useStore.getState()
+    if (state.plannedRunId && !state.runs[state.plannedRunId]) state.setPlannedRun(null)
+  }, [])
 
   const selectedKey = selected.join('|')
   const selectedSet = useMemo(() => new Set(selected), [selectedKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -240,6 +261,7 @@ export function PlanPage() {
   }, [sequence, pool, suggestion])
 
   const planAnother = useCallback(() => {
+    useStore.getState().setPlannedRun(null)
     setDispatched(null)
     setSelected([])
     setSequence([])
@@ -251,25 +273,11 @@ export function PlanPage() {
   /**
    * One string, so this re-renders when the run's PROGRESS changes and not on
    * every 5 Hz position publish. Empty means the run is gone — the demo fleet
-   * loops, and a reset takes planner builds with it.
+   * loops, and a reset takes planner builds with it. The three states the panel
+   * can be in are derived from it in `watch.ts`, never guessed at here.
    */
-  const runWatch = useStore((s) => {
-    if (!dispatched) return ''
-    const run = s.runs[dispatched.runId]
-    if (!run) return ''
-    const done = run.stops.filter((id) => {
-      const stop = s.stops[id]
-      return stop?.status === 'delivered' || stop?.status === 'exception'
-    }).length
-    const current = run.stops.find((id) => {
-      const stop = s.stops[id]
-      return stop && stop.status !== 'delivered' && stop.status !== 'exception'
-    })
-    const eta = current ? s.stops[current]?.etaMin ?? null : null
-    return `${run.status}|${done}|${run.stops.length}|${eta ?? '-'}`
-  })
-
-  const [watchStatus, watchDone, watchTotal, watchEta] = runWatch.split('|')
+  const runWatchKey = useStore((s) => watchKey(s, dispatched?.runId ?? null))
+  const watch = useMemo(() => describeWatch(runWatchKey), [runWatchKey])
 
   /* -------------------------------------------------------------- render -- */
 
@@ -308,40 +316,78 @@ export function PlanPage() {
               <span className="plate-id">{dispatched.manifestId}</span>
             </div>
             <div className="pl-watch__body">
-              {runWatch === '' ? (
+              <p className="display display--sm">{watch.headline}</p>
+
+              {watch.kind === 'gone' ? (
+                <p className="micro">
+                  The demo fleet loops: when every run finishes it re-seeds itself, and planner
+                  builds go with it. Nothing was lost — this board is a sandbox.
+                </p>
+              ) : null}
+
+              {watch.kind === 'driving' ? (
                 <>
-                  <p className="display display--sm">That run is done.</p>
-                  <p className="micro">
-                    The demo fleet loops: when every run finishes it re-seeds itself, and planner
-                    builds go with it. Nothing was lost — this board is a sandbox.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="display display--sm">Your run is driving.</p>
                   <div className="pl-watch__stat">
-                    <span className="numeral numeral--accent">{watchEta === '-' ? '—' : watchEta}</span>
-                    <span className="label">{watchEta === '-' ? 'no eta' : 'min to next stop'}</span>
+                    <span className="numeral numeral--accent">
+                      {watch.etaMin === null ? '—' : watch.etaMin}
+                    </span>
+                    <span className="label">
+                      {watch.etaMin === null ? 'no eta' : 'min to next stop'}
+                    </span>
                   </div>
                   <div className="pl-chips">
-                    <span className="chip chip--accent">{`Stop ${watchDone}/${watchTotal}`}</span>
+                    <span className="chip chip--accent">{`Stop ${watch.served}/${watch.total}`}</span>
                     <span className="chip">{dispatched.label}</span>
-                    <span className="chip chip--quiet">{watchStatus}</span>
+                    <span className="chip chip--quiet">{watch.status}</span>
                   </div>
                   <p className="micro">
                     The same sim engine that drives the seeded fleet is driving this one, along the
                     matrix legs you sequenced. Watch it on the console, or work it as the driver.
                   </p>
                 </>
-              )}
+              ) : null}
+
+              {watch.kind === 'complete' ? (
+                <>
+                  {/* Calm, per DESIGN — the count IS the celebration. */}
+                  <div className="pl-watch__stat">
+                    <span className="numeral">{`${watch.closed}/${watch.total}`}</span>
+                    <span className="label">stops closed</span>
+                  </div>
+                  <div className="pl-chips">
+                    <span className="chip">{dispatched.label}</span>
+                    {watch.exceptions > 0 ? (
+                      <span className="chip chip--amber">
+                        {watch.exceptions === 1 ? '1 exception' : `${watch.exceptions} exceptions`}
+                      </span>
+                    ) : null}
+                    <span className="chip chip--quiet">{watch.status}</span>
+                  </div>
+                  <p className="micro">{completionNote(watch)}</p>
+                </>
+              ) : null}
+
               <div className="pl-actions">
-                <Link className="btn btn--primary" to="/dispatch">
-                  Watch it drive
-                </Link>
-                <Link className="btn" to="/driver">
-                  Driver app
-                </Link>
-                <button type="button" className="btn" onClick={planAnother}>
+                {watch.kind === 'driving' ? (
+                  <>
+                    <Link className="btn btn--primary" to="/dispatch">
+                      Watch it drive
+                    </Link>
+                    <Link className="btn" to="/driver">
+                      Driver app
+                    </Link>
+                  </>
+                ) : null}
+                {watch.kind === 'complete' ? (
+                  <Link className="btn btn--primary" to={`/manifest/${dispatched.runId}`}>
+                    Open the manifest
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  className={`btn${watch.kind === 'gone' ? ' btn--primary' : ''}`}
+                  onClick={planAnother}
+                >
                   Plan another
                 </button>
               </div>

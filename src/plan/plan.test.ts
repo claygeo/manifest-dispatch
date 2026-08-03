@@ -26,6 +26,7 @@ import { SERVICE_TIME_S } from '../routing/feasibility'
 import {
   dispatchPlannedRun,
   poolOrders,
+  restorePlannedRun,
   shiftEndMs,
   windowRisks,
   windowsOf,
@@ -457,6 +458,90 @@ describe('dispatching a planned run', () => {
     expect(() => dispatchPlannedRun([], pool(), { suggestedS: 0, naiveS: 0 })).toThrow(
       /cannot dispatch an empty run/,
     )
+  })
+})
+
+/* --------------------------------------------- the planner's own bookmark -- */
+
+/**
+ * The bug: `/plan` held its dispatched run in component state only. Click
+ * through to `/dispatch` to watch the run drive, come back, and the planner
+ * remounted blank — a fresh order pool and no watch panel — while the run it
+ * had just built was still crossing the map behind it. The run was never lost;
+ * the pointer to it was.
+ *
+ * A component test would prove the panel renders. What actually has to hold is
+ * that the pointer survives an unmount (it is store state, so it does), that it
+ * round-trips back into the same handle `dispatchPlannedRun` returned, and that
+ * a fleet reset takes it with the run rather than leaving the planner holding
+ * an id nothing answers to.
+ */
+describe('the dispatched run survives leaving the planner', () => {
+  it('bookmarks the run in the store, not in the component', () => {
+    resetStore()
+    expect(useStore.getState().plannedRunId).toBeNull()
+
+    const dispatched = dispatchPlannedRun(['run-a-1', 'run-b-2'], pool(), {
+      suggestedS: 0,
+      naiveS: 0,
+    })
+
+    expect(useStore.getState().plannedRunId).toBe(dispatched.runId)
+  })
+
+  it('round-trips into the same handle the dispatch returned', () => {
+    resetStore()
+    const dispatched = dispatchPlannedRun(['run-c-1', 'run-a-3'], pool(), {
+      suggestedS: 0,
+      naiveS: 0,
+    })
+
+    // what PlanPage does on mount
+    const restored = restorePlannedRun(useStore.getState())
+
+    expect(restored).toEqual(dispatched)
+  })
+
+  it('follows the newest build when a second run is dispatched', () => {
+    resetStore()
+    dispatchPlannedRun(['run-a-1'], pool(), { suggestedS: 0, naiveS: 0 })
+    const second = dispatchPlannedRun(['run-b-1'], pool(), { suggestedS: 0, naiveS: 0 })
+
+    expect(useStore.getState().plannedRunId).toBe(second.runId)
+    expect(restorePlannedRun(useStore.getState())?.runId).toBe(second.runId)
+  })
+
+  it('is cleared by a fleet reset, along with the run it pointed at', () => {
+    resetStore()
+    const dispatched = dispatchPlannedRun(['run-a-1'], pool(), { suggestedS: 0, naiveS: 0 })
+
+    useStore.getState().resetFleet()
+
+    expect(useStore.getState().runs[dispatched.runId]).toBeUndefined()
+    expect(useStore.getState().plannedRunId).toBeNull()
+    expect(restorePlannedRun(useStore.getState())).toBeNull()
+  })
+
+  it('refuses to restore a pointer whose run is gone, rather than half a panel', () => {
+    resetStore()
+    // the state a reset between visits would leave behind if the store field
+    // and the run were ever cleared separately
+    useStore.getState().setPlannedRun('plan-vanished')
+
+    expect(restorePlannedRun(useStore.getState())).toBeNull()
+    expect(restorePlannedRun({ plannedRunId: null, runs: useStore.getState().runs })).toBeNull()
+  })
+
+  it('lets the planner drop the bookmark when the visitor plans another', () => {
+    resetStore()
+    dispatchPlannedRun(['run-a-1'], pool(), { suggestedS: 0, naiveS: 0 })
+
+    useStore.getState().setPlannedRun(null)
+
+    expect(useStore.getState().plannedRunId).toBeNull()
+    expect(restorePlannedRun(useStore.getState())).toBeNull()
+    // the run itself is untouched — it is still driving on every other surface
+    expect(useStore.getState().runOrder).toHaveLength(4)
   })
 })
 

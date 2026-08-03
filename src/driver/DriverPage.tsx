@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../store'
 import { DemoChip, ThemeToggle, Wordmark } from '../ui/controls'
+import { docTitle, useDocTitle } from '../ui/useDocTitle'
 import { formatLngLat, formatMoney, PAYMENT_TEXT } from '../format'
 import { runCounts } from '../selectors'
 import type { ExceptionReason, PaymentMethod } from '../types'
@@ -60,6 +61,8 @@ export function DriverPage() {
 
   const [screen, setScreen] = useState<Screen>('picker')
   const [params] = useSearchParams()
+
+  useDocTitle(docTitle('Driver'))
 
   const view = useMemo(() => ({ runs, runOrder, stops }), [runs, runOrder, stops])
 
